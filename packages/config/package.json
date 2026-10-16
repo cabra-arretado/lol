@@ -53,6 +53,11 @@
       "types": "./src/loopback.ts",
       "default": "./src/loopback.ts"
     },
+    "./egress-guard": {
+      "source": "./src/egress-guard.ts",
+      "types": "./src/egress-guard.ts",
+      "default": "./src/egress-guard.ts"
+    },
     "./runtime": {
       "source": "./src/runtime.ts",
       "types": "./src/runtime.ts",

@@ -49,6 +49,18 @@ below describes one of these features, the personal edition behaves as follows:
   `403 capability_disabled`.
 - The server and Vite dev server only listen on loopback (see
   [Startup Flags](#startup-flags)).
+- The server and host daemon processes refuse every outbound TCP connection
+  that is not to loopback (`localhost`, `*.localhost`, `127.0.0.0/8`, `::1`) and
+  log `Blocked outbound connection` with the host and port. This covers
+  `fetch`, `node:http`, `node:https`, `node:tls`, WebSockets and server
+  plugins. It does not cover child processes: provider CLIs (Claude Code,
+  Codex, Pi), provider bridges, `git` and `gh` keep their own network access.
+  Server-side features that call a remote API in-process, such as Codex thread
+  titles and commit messages or a remote HTTP MCP server, fail until their host
+  is allowed. To allow a host, set `BB_EGRESS_ALLOWED_HOSTS` to a
+  comma-separated list for both processes, for example
+  `BB_EGRESS_ALLOWED_HOSTS=chatgpt.com,.openai.com`. An entry that starts with a
+  dot also matches its subdomains.
 
 ## Repository worktree hooks
 

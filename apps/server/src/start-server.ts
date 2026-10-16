@@ -7,6 +7,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerConfig } from "@bb/config/server";
 import { isLoopbackHostname } from "@bb/config/loopback";
+import {
+  installEgressGuard,
+  loadEgressAllowedHosts,
+} from "@bb/config/egress-guard";
 import { toOptionalString } from "@bb/config/strings";
 import { capabilityGuardedFetch, isCapabilityAllowed } from "@bb/domain";
 import { createLogger } from "@bb/logger";
@@ -117,6 +121,12 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   const logger = createLogger({
     component: "server",
     dataDir: serverConfig.BB_DATA_DIR,
+  });
+  installEgressGuard({
+    allowedHosts: loadEgressAllowedHosts(),
+    onBlocked: (attempt) => {
+      logger.warn(attempt, "Blocked outbound connection");
+    },
   });
   await refuseInterruptedServerImport({
     dataDir: serverConfig.BB_DATA_DIR,
