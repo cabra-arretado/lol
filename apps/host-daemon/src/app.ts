@@ -25,7 +25,6 @@ import {
   type RuntimeManagerOptions,
 } from "./runtime-manager.js";
 import { WatchManager } from "./watch-manager.js";
-import { ConnectTunnelClient } from "./connect-tunnel/index.js";
 import { TerminalManager } from "./terminals/terminal-manager.js";
 import {
   createServerClient,
@@ -131,7 +130,6 @@ export interface HostDaemonApp {
   localApi: LocalApiServer | null;
   runtimeManager: RuntimeManager;
   watchManager: WatchManager;
-  connectTunnel: ConnectTunnelClient;
   terminalManager: TerminalManager;
   router: CommandRouter;
   connection: ServerConnection;
@@ -481,25 +479,6 @@ export async function createHostDaemonApp(
       });
     },
   });
-  const connectTunnel = new ConnectTunnelClient({
-    serverUrl: options.serverUrl,
-    hostName: options.hostName,
-    machineCredential: options.serverHeaders?.["x-bb-connect-machine"],
-    fetchFn: options.fetchFn,
-    logger: options.logger,
-    onIdentity: (identity) => {
-      sendServerMessage({
-        type: "connect-tunnel.identity",
-        identity,
-      });
-    },
-    onStatusChange: (status) => {
-      options.logger.debug(
-        { connectTunnelStatus: status },
-        "Machine tunnel status",
-      );
-    },
-  });
   runtimeManager = new RuntimeManager({
     bridgeBundleDir: options.bridgeBundleDir,
     createRuntime: options.createRuntime,
@@ -788,7 +767,6 @@ export async function createHostDaemonApp(
     resolveInteractiveRequest: async (request) => {
       interactiveRequestRegistry.resolve(request);
     },
-    ensureConnectTunnelIdentity: () => connectTunnel.ensureTunnelIdentity(),
     serverMove,
     pluginHostManager,
     threadStorageRootPath,
@@ -837,16 +815,9 @@ export async function createHostDaemonApp(
         threadStorageTargets: message.threadStorageTargets,
       });
     },
-    onConnectSharesReplace: (message) => {
-      connectTunnel.replaceShareSet({
-        generation: message.generation,
-        ports: message.ports,
-      });
-    },
     onTerminalMessage: (message) => terminalManager.handleMessage(message),
     onSessionOpened: async (session) => {
       sessionState.value = session.sessionId;
-      connectTunnel.replaceAuthoritativeShareSet(session.connectShares);
       await pluginHostManager.reconcileGenerations(
         session.pluginHostGenerations,
       );
@@ -934,7 +905,6 @@ export async function createHostDaemonApp(
       await pluginHostManager.shutdown();
       await options.closeMachineAuthProxy?.();
       await localApi?.close();
-      connectTunnel.shutdown();
       await watchManager.shutdown();
       disposeParcelWatcherBackend();
       await terminalManager.shutdownAll();
@@ -983,7 +953,6 @@ export async function createHostDaemonApp(
     localApi,
     runtimeManager,
     watchManager,
-    connectTunnel,
     terminalManager,
     router,
     connection,
