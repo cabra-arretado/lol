@@ -188,7 +188,7 @@ describe("machine enroll", () => {
 
   it("uses the default BB data directory only when it already holds this machine", async () => {
     const h = await harness();
-    const defaultDir = join(h.dir, ".bb");
+    const defaultDir = join(h.dir, ".lol");
     h.env.BB_DATA_DIR = defaultDir;
     await expect(h.run()).rejects.toThrow(
       "cannot use the default BB data directory",
