@@ -834,49 +834,4 @@ describe("public host management", () => {
       expect(getHost(harness.db, primary.id)?.destroyedAt).toBeNull();
     });
   });
-
-  it("asks the connect plugin to revoke the removed host's cloud machine", async () => {
-    await withTestHarness(async (harness) => {
-      const primary = seedHost(harness.deps, { id: "host_primary" });
-      seedPrimaryHost(harness.deps, primary.id);
-      const host = seedHost(harness.deps, {
-        connectMachineId: "machine-cloud-remove",
-        id: "host_cloud_remove",
-      });
-      const connectPlugin = await harness.pluginService.install(
-        "builtin:connect",
-        { kind: "root" },
-      );
-      expect(connectPlugin).toMatchObject({
-        source: "builtin:connect",
-        status: "running",
-      });
-      const revokeHandler = vi.fn(async () => ({ ok: true }));
-      const revokeRecord = {
-        publication: null,
-        inputSchema: z.object({ machineId: z.string() }),
-        outputSchema: z.object({ ok: z.literal(true) }),
-        handler: revokeHandler,
-      };
-      vi.spyOn(harness.pluginService, "getRpcHandler").mockReturnValue({
-        outcome: "found",
-        value: revokeRecord,
-      });
-      const invoke = vi
-        .spyOn(harness.pluginService, "invokeRpcHandler")
-        .mockResolvedValue({ ok: true, result: { ok: true } });
-
-      const response = await harness.app.request(`${API}/hosts/${host.id}`, {
-        method: "DELETE",
-      });
-      expect(response.status).toBe(200);
-      expect(invoke).toHaveBeenCalledWith(
-        connectPlugin.id,
-        "revokeMachine",
-        revokeRecord,
-        { machineId: "machine-cloud-remove" },
-        { kind: "client" },
-      );
-    });
-  }, 30_000);
 });

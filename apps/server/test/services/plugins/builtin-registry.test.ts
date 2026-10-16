@@ -10,20 +10,15 @@ import {
 import { resolveBundledMarketplaceDirectory } from "../../../src/services/plugin-catalog/bundled-marketplace.js";
 
 const UNPREFIXED_BUNDLED_PLUGIN_IDS = [
-  "account-pool",
   "agent-annotations",
   "ask-user-question",
   "automations",
-  "bb-account",
-  "bb-ai",
   "bb-guide",
   "browser-automation",
   "concurrency-limit",
-  "connect",
   "custom-instructions",
   "drafts",
   "environment-git-worktree",
-  "environment-modal-sandbox",
   "environment-personal-workspace",
   "environment-project-checkout",
   "github",
@@ -39,7 +34,6 @@ const UNPREFIXED_BUNDLED_PLUGIN_IDS = [
   "provider-codex",
   "provider-pi",
   "provider-retry",
-  "push-notifications",
   "scheduled-send",
   "secrets",
   "side-chat",

@@ -1,8 +1,4 @@
 {
-  "account-pool": {
-    "category": "agents-and-providers",
-    "screenshots": []
-  },
   "agent-annotations": {
     "category": "code-and-reviews",
     "screenshots": []
@@ -17,18 +13,6 @@
       "https://getbb.app/marketplace/v2/screenshots/automations/automations-catalog.png",
       "https://getbb.app/marketplace/v2/screenshots/automations/automations-sidebar.png"
     ]
-  },
-  "bb-account": {
-    "category": "cloud-and-remote",
-    "screenshots": []
-  },
-  "bb-ai": {
-    "category": "cloud-and-remote",
-    "screenshots": []
-  },
-  "connect": {
-    "category": "cloud-and-remote",
-    "screenshots": []
   },
   "custom-instructions": {
     "category": "memory-and-context",
@@ -145,10 +129,6 @@
     "category": "themes-and-appearance",
     "screenshots": []
   },
-  "push-notifications": {
-    "category": "notifications",
-    "screenshots": []
-  },
   "browser-automation": {
     "category": "agents-and-providers",
     "screenshots": []
@@ -167,10 +147,6 @@
   },
   "bb-guide": {
     "category": "memory-and-context",
-    "screenshots": []
-  },
-  "environment-modal-sandbox": {
-    "category": "cloud-and-remote",
     "screenshots": []
   },
   "prompt-library": {

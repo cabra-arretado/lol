@@ -76,6 +76,9 @@ below describes one of these features, the personal edition behaves as follows:
   Updates, the Add a machine action, the add-marketplace form, the skills.sh
   registry browser (Skills opens your library), and the onboarding Devices
   step.
+- The bb account, bb connect, bb cloud AI, push notifications, Account Pooler
+  and Modal sandbox plugins are not bundled, so they cannot be installed or
+  enabled. Provider usage is bundled but off by default.
 
 ## Repository worktree hooks
 
@@ -239,7 +242,7 @@ change the host-daemon protocol.
 | `BB_SKIP_ONBOARDING`           | Environment                                        | Startup-only            | Default false. `1` marks first-run setup completed at startup when it is not yet, so the setup screen is skipped. Settings → General can still replay it. `pnpm dev` and `pnpm start:worktree` default it to `1`; an explicit `0` retains setup.                       |
 | `BB_PERF_DIAGNOSTICS`          | `bb-app env`, environment, or `--perf-diagnostics` | Startup-only            | Default false. Permits the `performanceDiagnostics` experiment; see [Experiments](#experiments).                                                                                                                             |
 | `BB_CLI_ERROR_LOG`             | Environment of the `bb` process                    | Optional                | `0` stops the CLI recording failed invocations (command path, error code, no argument values) to `<dataDir>/logs/cli-errors.jsonl`. See `bb guide overview`.                                                                 |
-| `BB_ACCOUNT_POOL_PARENT_URL`   | Set automatically by a parent bb server            | Nested bb servers       | Account Pooler hub of the bb server whose thread launched this one. When present the Account Pooler plugin is enabled on first run and proxies to that parent; `bb pool parent isolate` opts out. Not a `bb-app config` key. |
+| `BB_ACCOUNT_POOL_PARENT_URL`   | Set automatically by a parent bb server            | Nested bb servers       | Account Pooler hub of the bb server whose thread launched this one. The personal edition does not bundle the Account Pooler plugin, so it has no effect there. Upstream, when present the Account Pooler plugin is enabled on first run and proxies to that parent; `bb pool parent isolate` opts out. Not a `bb-app config` key. |
 | `BB_ACCOUNT_POOL_PARENT_TOKEN` | Set automatically by a parent bb server            | Nested bb servers       | Machine token this nested server presents to the parent hub. Both parent variables must be well formed or proxying stays off.                                                                                                |
 
 BB accepts request hosts that are `localhost`, IP addresses (including LAN and

@@ -32,7 +32,6 @@ import {
   type PluginService,
 } from "../../../src/services/plugins/plugin-service.js";
 import {
-  accountPoolDefaultEnabled,
   BUILTIN_PLUGINS,
   OFFICIAL_PLUGINS,
   resolveBuiltinPluginRootPath,
@@ -264,7 +263,6 @@ describe("builtin plugin reconciliation", () => {
   it("keeps official plugins bundled but out of the auto-install builtins", () => {
     const optionalNames = OFFICIAL_PLUGINS.map((plugin) => plugin.name);
     expect(optionalNames).toEqual([
-      "environment-modal-sandbox",
       "browser-automation",
       "github",
       "docs",
@@ -276,19 +274,6 @@ describe("builtin plugin reconciliation", () => {
       expect(BUILTIN_PLUGINS.map((plugin) => plugin.name)).not.toContain(name);
     }
     expect(OFFICIAL_PLUGINS.every((plugin) => !plugin.autoInstall)).toBe(true);
-  });
-
-  it("enables the account pooler only when a parent bb server pool is present", () => {
-    expect(accountPoolDefaultEnabled({})).toBe(false);
-    expect(accountPoolDefaultEnabled({ BB_ACCOUNT_POOL_PARENT_URL: "" })).toBe(
-      false,
-    );
-    expect(
-      accountPoolDefaultEnabled({
-        BB_ACCOUNT_POOL_PARENT_URL:
-          "http://127.0.0.1:38886/api/v1/plugins/account-pool/http",
-      }),
-    ).toBe(true);
   });
 
   afterEach(async () => {
@@ -606,12 +591,11 @@ describe("builtin plugin reconciliation", () => {
       "monaco-editor": false,
       "plugin-api-docs": false,
       workflows: false,
-      "provider-usage": true,
+      "provider-usage": false,
       "concurrency-limit": true,
       "scheduled-send": true,
       drafts: true,
       "provider-retry": true,
-      "push-notifications": true,
     });
   });
 
