@@ -1,4 +1,8 @@
-import { capabilityGuardedFetch, isCapabilityAllowed } from "@bb/domain";
+import {
+  assertCapabilityAllowed,
+  capabilityGuardedFetch,
+  isCapabilityAllowed,
+} from "@bb/domain";
 import { publicMarketplaceFetch } from "./services/plugin-catalog/marketplace-http.js";
 import { createPluginUpdateJobs } from "./services/plugins/plugin-update-jobs.js";
 import { registerPluginUpdateJobRoutes } from "./routes/plugin-update-jobs.js";
@@ -557,6 +561,20 @@ export function createApp(
       ...(serverMove === null ? {} : { serverMove }),
     });
   });
+  for (const path of [
+    "/install.sh",
+    "/install.ps1",
+    "/install/version",
+    "/install/bb-app.tgz",
+  ]) {
+    app.use(path, async (_context, next) => {
+      assertCapabilityAllowed(
+        "remoteHostEnrollment",
+        deps.config.isCapabilityAllowed,
+      );
+      await next();
+    });
+  }
   app.get("/install.sh", async (context) => {
     const script = await readFile(INSTALL_MACHINE_SCRIPT_PATH, "utf8");
     const credential = context.req.header("X-BB-Enrollment");

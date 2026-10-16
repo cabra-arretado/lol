@@ -79,6 +79,11 @@ below describes one of these features, the personal edition behaves as follows:
 - The bb account, bb connect, bb cloud AI, push notifications, Account Pooler
   and Modal sandbox plugins are not bundled, so they cannot be installed or
   enabled. Provider usage is bundled but off by default.
+- Adding another machine is refused: `/install.sh`, `/install.ps1`,
+  `/install/version`, `/install/bb-app.tgz` and the machine enrollment command
+  return `403 capability_disabled`. The local host daemon still enrolls itself
+  over loopback. Server move and export return `403 capability_disabled`, and
+  the host daemon no longer opens the bb connect tunnel.
 
 ## Repository worktree hooks
 

@@ -1,3 +1,4 @@
+import { assertCapabilityAllowed } from "@bb/domain";
 import { joinHostPathSegments } from "../services/lib/host-path.js";
 import { serverAccess } from "../services/machines/server-access.js";
 import {
@@ -184,6 +185,10 @@ export function registerHostRoutes(
 
   get(routes.enrollmentCommand, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     requireMutableHost(deps, context.req.param("id"));
     return context.json(
       await manualHostCommand(

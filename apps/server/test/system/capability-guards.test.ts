@@ -52,6 +52,30 @@ const deniedRequests: DeniedRequest[] = [
     method: "GET",
     capability: "mobileApp",
   },
+  {
+    name: "machine install script",
+    path: "/install.sh",
+    method: "GET",
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "machine install package",
+    path: "/install/bb-app.tgz",
+    method: "GET",
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "machine enrollment command",
+    path: "/api/v1/hosts/host_missing/enrollment-command",
+    method: "GET",
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "server export",
+    path: "/api/v1/server/export",
+    method: "POST",
+    capability: "serverMove",
+  },
 ];
 
 describe("personal edition capability guards", () => {

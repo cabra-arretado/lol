@@ -40,7 +40,7 @@ const publishedTagPrefixPattern = new RegExp(
     JSON.parse(
       readFileSync(
         new URL(
-          "../../../../web/public/schemas/marketplace.schema.json",
+          "../../../../../docs/schemas/marketplace.schema.json",
           import.meta.url,
         ),
         "utf8",
