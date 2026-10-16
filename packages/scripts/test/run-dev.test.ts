@@ -41,7 +41,7 @@ afterEach(() => {
 describe("run-dev", () => {
   it("derives stable data and ports from a managed checkout", () => {
     const homeDir = "/Users/tester";
-    const repoRoot = "/Users/tester/.bb-dev/projects/env_q7e5i54kxt/bb";
+    const repoRoot = "/Users/tester/.lol-dev/projects/env_q7e5i54kxt/bb";
     const config = resolveDevInstanceConfig({ homeDir, repoRoot });
 
     expect(config.instanceId).toBe(
@@ -54,16 +54,16 @@ describe("run-dev", () => {
     expect(Object.values(config.ports)).not.toContain(5173);
     expect(Object.values(config.ports)).not.toContain(3334);
     expect(Object.values(config.ports)).not.toContain(3002);
-    expect(Object.values(config.ports)).not.toContain(38886);
-    expect(Object.values(config.ports)).not.toContain(38887);
+    expect(Object.values(config.ports)).not.toContain(38986);
+    expect(Object.values(config.ports)).not.toContain(38987);
   });
 
   it("keeps Cloud gateway ports out of the worker band and packaged ports", () => {
     const rootsByOffset = new Map([
       [0, "/repo/port-13604"],
       [1, "/repo/port-3079"],
-      [3886, "/repo/port-3186"],
-      [3887, "/repo/port-6427"],
+      [3986, "/repo/port-9938"],
+      [3987, "/repo/port-4698"],
       [7998, "/repo/port-57923"],
       [7999, "/repo/port-7517"],
     ]);
@@ -74,8 +74,8 @@ describe("run-dev", () => {
       ]),
     );
 
-    expect(portsByOffset.get(3886)?.cloudPort).toBe(59000);
-    expect(portsByOffset.get(3887)?.cloudPort).toBe(59001);
+    expect(portsByOffset.get(3986)?.cloudPort).toBe(59000);
+    expect(portsByOffset.get(3987)?.cloudPort).toBe(59001);
     expect(portsByOffset.get(7998)?.cloudPort).toBe(42998);
     expect(portsByOffset.get(7999)?.cloudPort).toBe(42999);
     expect(portsByOffset.get(0)?.cloudWorkerPort).toBe(43000);
@@ -103,10 +103,10 @@ describe("run-dev", () => {
   it("overrides instance selectors while preserving unrelated environment", () => {
     const config = resolveDevInstanceConfig({
       homeDir: "/Users/tester",
-      repoRoot: "/Users/tester/.bb-dev/projects/env_q7e5i54kxt/bb",
+      repoRoot: "/Users/tester/.lol-dev/projects/env_q7e5i54kxt/bb",
     });
     const baseEnv: NodeJS.ProcessEnv = {
-      BB_DATA_DIR: "/Users/tester/.bb-dev",
+      BB_DATA_DIR: "/Users/tester/.lol-dev",
       BB_SERVER_PORT: "3334",
       NODE_ENV: "production",
       OPENAI_API_KEY: "test-key",
@@ -130,7 +130,7 @@ describe("run-dev", () => {
     const homeDir = path.resolve("/Users/tester");
     const repoRoot = path.join(
       homeDir,
-      ".bb-dev/code-bb-abc123/worktrees/env_feature/bb",
+      ".lol-dev/code-bb-abc123/worktrees/env_feature/bb",
     );
     const config = resolveDevInstanceConfig({
       homeDir,
@@ -138,8 +138,8 @@ describe("run-dev", () => {
     });
 
     const inheritedSkillsRootPaths = [
-      path.join(homeDir, ".bb-dev", "code-bb-abc123", "skills"),
-      path.join(homeDir, ".bb", "skills"),
+      path.join(homeDir, ".lol-dev", "code-bb-abc123", "skills"),
+      path.join(homeDir, ".lol", "skills"),
     ];
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual(
       inheritedSkillsRootPaths,
@@ -151,17 +151,17 @@ describe("run-dev", () => {
 
   it("dedupes inherited bb skills for prod-managed worktree dev apps", () => {
     const homeDir = path.resolve("/Users/tester");
-    const repoRoot = path.join(homeDir, ".bb/worktrees/env_feature/bb");
+    const repoRoot = path.join(homeDir, ".lol/worktrees/env_feature/bb");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot,
     });
 
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual([
-      path.join(homeDir, ".bb", "skills"),
+      path.join(homeDir, ".lol", "skills"),
     ]);
     expect(toDevProcessEnv({ baseEnv: {}, config })).toMatchObject({
-      BB_INHERITED_SKILLS_ROOTS: path.join(homeDir, ".bb", "skills"),
+      BB_INHERITED_SKILLS_ROOTS: path.join(homeDir, ".lol", "skills"),
     });
   });
 
@@ -174,10 +174,10 @@ describe("run-dev", () => {
     });
 
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual([
-      path.join(homeDir, ".bb", "skills"),
+      path.join(homeDir, ".lol", "skills"),
     ]);
     expect(toDevProcessEnv({ baseEnv: {}, config })).toMatchObject({
-      BB_INHERITED_SKILLS_ROOTS: path.join(homeDir, ".bb", "skills"),
+      BB_INHERITED_SKILLS_ROOTS: path.join(homeDir, ".lol", "skills"),
     });
   });
 
@@ -190,7 +190,7 @@ describe("run-dev", () => {
       BB_ENVIRONMENT_ID: "env_parent",
       BB_PROJECT_ID: "proj_parent",
       BB_THREAD_ID: "thr_parent",
-      BB_THREAD_STORAGE: "/Users/tester/.bb/thread-storage/thr_parent",
+      BB_THREAD_STORAGE: "/Users/tester/.lol/thread-storage/thr_parent",
     };
 
     const env = toDevProcessEnv({ baseEnv, config });
@@ -208,17 +208,17 @@ describe("run-dev", () => {
     });
     const baseEnv: NodeJS.ProcessEnv = {
       BB_ACCOUNT_POOL_PARENT_URL:
-        "http://127.0.0.1:38886/api/v1/plugins/account-pool/http",
+        "http://127.0.0.1:38986/api/v1/plugins/account-pool/http",
       BB_ACCOUNT_POOL_PARENT_TOKEN: "parent-hub-token",
       ANTHROPIC_BASE_URL:
-        "http://127.0.0.1:38886/api/v1/plugins/account-pool/http",
+        "http://127.0.0.1:38986/api/v1/plugins/account-pool/http",
       ANTHROPIC_AUTH_TOKEN: "parent-hub-token",
     };
 
     const env = toDevProcessEnv({ baseEnv, config });
 
     expect(env.BB_ACCOUNT_POOL_PARENT_URL).toBe(
-      "http://127.0.0.1:38886/api/v1/plugins/account-pool/http",
+      "http://127.0.0.1:38986/api/v1/plugins/account-pool/http",
     );
     expect(env.BB_ACCOUNT_POOL_PARENT_TOKEN).toBe("parent-hub-token");
     expect(env.ANTHROPIC_AUTH_TOKEN).toBe("parent-hub-token");
@@ -304,7 +304,7 @@ describe("run-dev", () => {
 
     const env = toDevLaunchProcessEnv({
       baseEnv: {
-        BB_DATA_DIR: "/Users/tester/.bb",
+        BB_DATA_DIR: "/Users/tester/.lol",
         BB_DEV_APP_PORT: "5173",
         BB_TELEMETRY: "true",
         NODE_ENV: "development",
@@ -330,7 +330,7 @@ describe("run-dev", () => {
 
   it("migrates legacy flat dev data into the checkout instance", async () => {
     const homeDir = await makeTempDir("bb-dev-home-");
-    const legacyDataDir = path.join(homeDir, ".bb-dev");
+    const legacyDataDir = path.join(homeDir, ".lol-dev");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot: path.join(homeDir, "src", "bb"),
@@ -410,7 +410,7 @@ describe("run-dev", () => {
 
   it("skips migration when the target instance already has data", async () => {
     const homeDir = await makeTempDir("bb-dev-home-");
-    const legacyDataDir = path.join(homeDir, ".bb-dev");
+    const legacyDataDir = path.join(homeDir, ".lol-dev");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot: path.join(homeDir, "src", "bb"),
@@ -448,7 +448,7 @@ describe("run-dev", () => {
 
   it("skips migration when legacy dev data has no migratable entries", async () => {
     const homeDir = await makeTempDir("bb-dev-home-");
-    const legacyDataDir = path.join(homeDir, ".bb-dev");
+    const legacyDataDir = path.join(homeDir, ".lol-dev");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot: path.join(homeDir, "src", "bb"),
@@ -465,7 +465,7 @@ describe("run-dev", () => {
 
   it("rolls back already moved entries when migration rename fails", async () => {
     const homeDir = await makeTempDir("bb-dev-home-");
-    const legacyDataDir = path.join(homeDir, ".bb-dev");
+    const legacyDataDir = path.join(homeDir, ".lol-dev");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot: path.join(homeDir, "src", "bb"),
@@ -511,7 +511,7 @@ describe("run-dev", () => {
 
   it("does not migrate legacy data while a legacy dev supervisor is running", async () => {
     const homeDir = await makeTempDir("bb-dev-home-");
-    const legacyDataDir = path.join(homeDir, ".bb-dev");
+    const legacyDataDir = path.join(homeDir, ".lol-dev");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot: path.join(homeDir, "src", "bb"),

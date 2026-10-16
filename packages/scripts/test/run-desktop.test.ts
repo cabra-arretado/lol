@@ -56,7 +56,7 @@ describe("desktop launch environment", () => {
   it("isolates the worktree launch onto this checkout's data directory and ports", () => {
     const env = toDesktopLaunchProcessEnv({
       baseEnv: {
-        BB_DATA_DIR: "/Users/tester/.bb",
+        BB_DATA_DIR: "/Users/tester/.lol",
         BB_DEV_APP_PORT: "5173",
         BB_TELEMETRY: "true",
         NODE_ENV: "development",
@@ -76,8 +76,8 @@ describe("desktop launch environment", () => {
       NODE_ENV: "production",
       OPENAI_API_KEY: "test-key",
     });
-    expect(env.BB_DATA_DIR).not.toBe("/Users/tester/.bb");
-    expect(env.BB_SERVER_PORT).not.toBe("38886");
+    expect(env.BB_DATA_DIR).not.toBe("/Users/tester/.lol");
+    expect(env.BB_SERVER_PORT).not.toBe("38986");
     expect(env.BB_DEV_APP_PORT).toBeUndefined();
   });
 

@@ -346,17 +346,17 @@ it.each([false, true])(
     const root = await directory();
     const fakeHome = await directory();
     if (!detached) {
-      await fs.mkdir(path.join(fakeHome, ".bb-dev", "checkout-a"), {
+      await fs.mkdir(path.join(fakeHome, ".lol-dev", "checkout-a"), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(fakeHome, ".bb-dev", "checkout-a", "bb.db"),
+        path.join(fakeHome, ".lol-dev", "checkout-a", "bb.db"),
         Buffer.alloc(32768),
       );
     }
     if (!detached)
       await fs.writeFile(
-        path.join(fakeHome, ".bb-dev", "checkout-a", "bb-dev-instance.json"),
+        path.join(fakeHome, ".lol-dev", "checkout-a", "bb-dev-instance.json"),
         JSON.stringify({
           repoRoot: path.join(fakeHome, "worktrees", "thr_live-1", "bb"),
         }),
@@ -483,7 +483,7 @@ it.each([false, true])(
       if (detached) expect(scanned.report!.developerStorage).toBeNull();
       else {
         expect(path.normalize(scanned.report!.developerStorage!.path)).toBe(
-          path.join(fakeHome, ".bb-dev"),
+          path.join(fakeHome, ".lol-dev"),
         );
         expect(scanned.report!.developerStorage).toMatchObject({
           entries: [
@@ -1221,7 +1221,7 @@ it("counts distinct live managed worktrees for machine projects, including empty
 
 it("recovers developer checkout paths from launch records, old runtime records, known paths and verified managed names", async () => {
   const homeDir = await directory();
-  const rootPath = path.join(homeDir, ".bb-dev");
+  const rootPath = path.join(homeDir, ".lol-dev");
   const managed = path.join(
     homeDir,
     ".bb",
@@ -1333,7 +1333,7 @@ it.skipIf(process.platform === "win32")(
   "does not signal a recorded launcher PID that now belongs to another process",
   async () => {
     const fakeHome = await directory();
-    const rootPath = path.join(fakeHome, ".bb-dev");
+    const rootPath = path.join(fakeHome, ".lol-dev");
     const checkout = path.join(fakeHome, "checkout", "bb");
     await fs.mkdir(checkout, { recursive: true });
     await fs.mkdir(path.join(rootPath, "reused", "daemon.lock.lock"), {
@@ -1379,7 +1379,7 @@ it.skipIf(process.platform === "win32")(
   "removes development instances whose checkout is gone, stopping their servers and keeping revived or existing checkouts",
   async () => {
     const fakeHome = await directory();
-    const rootPath = path.join(fakeHome, ".bb-dev");
+    const rootPath = path.join(fakeHome, ".lol-dev");
     const checkouts = {
       gone: path.join(fakeHome, "gone", "bb"),
       revived: path.join(fakeHome, "revived", "bb"),
@@ -1603,7 +1603,7 @@ it.skipIf(process.platform === "win32")(
   "removes a symlinked development instance as a link and keeps its target",
   async () => {
     const fakeHome = await directory();
-    const rootPath = path.join(fakeHome, ".bb-dev");
+    const rootPath = path.join(fakeHome, ".lol-dev");
     const target = path.join(fakeHome, "elsewhere", "data");
     await fs.mkdir(target, { recursive: true });
     await fs.writeFile(
@@ -2007,7 +2007,7 @@ it("never clears thread storage that holds a workspace an environment still uses
 
 it("automatically removes missing-checkout data only when enabled and online, retrying failures and keeping existing or unidentified sources", async () => {
   const fakeHome = await directory();
-  const root = path.join(fakeHome, ".bb-dev");
+  const root = path.join(fakeHome, ".lol-dev");
   const checkout = path.join(fakeHome, "checkout");
   await fs.mkdir(checkout);
   for (const name of ["gone", "kept", "unknown"]) {
