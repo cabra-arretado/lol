@@ -23,6 +23,7 @@ import {
 } from "@bb/db";
 import {
   applyAppKeybindingOverrides,
+  capabilityPolicyView,
   appSettingsSchema,
   customThemeNameSchema,
   isBuiltInThemeId,
@@ -162,6 +163,8 @@ export function registerSystemRoutes(
     context.header("cache-control", "no-store");
     return context.json(await mobileAppReleases());
   });
+
+  get(routes.capabilities, (context) => context.json(capabilityPolicyView()));
 
   get(routes.attention, (context) =>
     context.json({ hasAttention: hasActiveThreadAttention(deps.db) }),

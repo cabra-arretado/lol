@@ -1,6 +1,7 @@
 import { rejectMultipleWorkspaceSelectors } from "./shared.js";
 import { z } from "zod";
 import {
+  capabilityPolicySchema,
   aiServiceSelectionSchema,
   aiServiceSelectionsSchema,
   aiServiceStatusSchema,
@@ -348,6 +349,11 @@ export const systemConfigResponseSchema = z.object({
   dataDir: z.string(),
 });
 export type SystemConfigResponse = z.infer<typeof systemConfigResponseSchema>;
+
+export const systemCapabilitiesResponseSchema = capabilityPolicySchema;
+export type SystemCapabilitiesResponse = z.infer<
+  typeof systemCapabilitiesResponseSchema
+>;
 
 export const systemAttentionResponseSchema = z.object({
   hasAttention: z.boolean(),

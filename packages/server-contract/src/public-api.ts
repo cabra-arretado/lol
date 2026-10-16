@@ -203,6 +203,7 @@ import type {
   SendQueuedMessageResponse,
   SidebarBootstrapResponse,
   SystemAttentionResponse,
+  SystemCapabilitiesResponse,
   SystemConfigReloadResponse,
   SystemConfigResponse,
   SystemMobileAppReleasesResponse,
@@ -1887,6 +1888,12 @@ export const publicApiRoutes = {
       method: "get",
       request: noRequest(),
       response: jsonResponse<SystemAttentionResponse>(),
+    }),
+    capabilities: defineRoute({
+      path: "/system/capabilities",
+      method: "get",
+      request: noRequest(),
+      response: jsonResponse<SystemCapabilitiesResponse>(),
     }),
     mobileAppReleases: defineRoute({
       path: "/system/mobile-app-releases",
