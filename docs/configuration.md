@@ -1087,11 +1087,6 @@ in and the `share-server-links` skill for `bb connect` and port shares.
 `https://getbb.app` and `https://vibecodethis.site` (plus
 `http://bb.localhost:<port>` in a development build).
 
-Settings → Mobile links the iOS TestFlight and Android APK downloads and pairs
-the bb mobile app (`bb connect machine-code`, see `bb guide machines`). Mobile
-builds, the optional `GOOGLE_SERVICES_JSON` Firebase config, and publishing
-are documented in [`apps/mobile/README.md`](../apps/mobile/README.md).
-
 ### Modal machines
 
 The Modal sandbox plugin creates machines on Modal. Its settings:
@@ -1151,14 +1146,6 @@ Other launcher flags: `--no-in-app-updates` ([In-App Updates](#in-app-updates))
 and `--perf-diagnostics` ([Experiments](#experiments)).
 
 ## Source Development
-
-`pnpm mobile:apk:dev` builds the standalone Android development app, **bb dev**,
-with orange icons and package `app.getbb.mobile.dev`. Output is
-`apps/mobile/build-output/bb-dev.apk`; append `-- x86_64` for an Intel emulator.
-The build command sets `BB_MOBILE_VARIANT=dev` for Expo configuration. Direct
-Expo commands accept `BB_MOBILE_VARIANT=production` (the default) or `dev`;
-other values fail validation. The dev variant omits production Firebase and
-HTTPS app-link registration. See [mobile build instructions](../apps/mobile/README.md#android-local-apk-and-verification).
 
 For source development only, `pnpm dev`, `pnpm start:worktree`, and
 `pnpm start` load the repo-root

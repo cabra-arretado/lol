@@ -42,28 +42,6 @@ The native Windows host is alpha. It runs from the Windows desktop installer or
   with the PowerShell command; its daemon runs in the signed-in user's session
 - the server cannot be moved to a Windows machine
 
-## Mobile app
-
-[`apps/mobile`](../apps/mobile) is the iOS and Android client for a bb server.
-It runs no agents, host daemon, or plugins itself: it loads the server's web
-app and adds native screens for pairing, saved servers, device settings, and
-push registration. Install it from Settings → Mobile (iOS TestFlight or the
-Android APK; see [configuration.md](configuration.md)).
-
-- **Direct** mode takes any `http(s)://` URL the phone can reach. It is
-  unauthenticated, the same trust model as a browser on a LAN; iOS allows
-  plain `http://` only for LAN IPs and `.local` names, so Tailscale hosts need
-  Serve HTTPS.
-- **bb connect** mode pairs the phone as a connect machine; see
-  [multiple-devices.md](multiple-devices.md#use-the-bb-mobile-app).
-- Push notifications need the server to reach `exp.host` and a bb connect or
-  HTTPS profile; a plain-HTTP direct profile cannot register.
-- Phones have no host daemon, so local editor integration, "Open in …", and
-  the native folder picker are unavailable; the remote path browser works.
-  Provider sign-in still needs a terminal on the host.
-- Web CSS and plugin themes apply to the loaded web app; native screens use
-  the built-in palettes. Desktop browser automation needs a desktop host.
-
 ## Support Boundaries
 
 ### Supported product flows
@@ -214,9 +192,3 @@ rebuild the native dependency, for example `npm rebuild better-sqlite3`.
   typecheck, the remaining test suites in seven shards, and an app smoke that
   boots `bb-app`, runs the `bb-app` tarball smoke, packages the desktop app, and
   smoke tests the packaged app.
-- `apps/mobile` typecheck, lint, and unit tests run inside the Ubuntu
-  `Checks` and the `Tests (packages-*)` jobs like every other workspace package. The
-  iOS simulator Maestro flows run in `Mobile E2E`
-  (`.github/workflows/mobile-e2e.yml`) on the macOS runner only when a pull
-  request carries the `mobile-e2e` label, nightly on `main`, or on manual
-  dispatch; they are not a required check.
