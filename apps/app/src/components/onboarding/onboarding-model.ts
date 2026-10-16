@@ -1,3 +1,4 @@
+import { isCapabilityAllowed, type CapabilityId } from "@bb/domain";
 import type { ProviderCliStatus } from "@bb/host-daemon-contract";
 import type {
   HostDiscoveredRepo,
@@ -7,7 +8,13 @@ import type {
 
 export type OnboardingStepId = "agent" | "projects" | "plugins" | "devices";
 
-export const ONBOARDING_STEPS: readonly {
+const DEVICES_STEP_CAPABILITIES: readonly CapabilityId[] = [
+  "bbConnect",
+  "remoteHostEnrollment",
+  "mobileApp",
+];
+
+const ALL_ONBOARDING_STEPS: readonly {
   id: OnboardingStepId;
   label: string;
 }[] = [
@@ -16,6 +23,12 @@ export const ONBOARDING_STEPS: readonly {
   { id: "plugins", label: "Plugins" },
   { id: "devices", label: "Devices" },
 ];
+
+export const ONBOARDING_STEPS = ALL_ONBOARDING_STEPS.filter(
+  (entry) =>
+    entry.id !== "devices" ||
+    DEVICES_STEP_CAPABILITIES.some(isCapabilityAllowed),
+);
 
 export const ONBOARDING_PLUGIN_MARKETPLACE = "bb-official";
 

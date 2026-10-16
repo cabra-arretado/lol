@@ -1,4 +1,4 @@
-import { capabilityGuardedFetch } from "@bb/domain";
+import { capabilityGuardedFetch, isCapabilityAllowed } from "@bb/domain";
 import { publicMarketplaceFetch } from "./services/plugin-catalog/marketplace-http.js";
 import { createPluginUpdateJobs } from "./services/plugins/plugin-update-jobs.js";
 import { registerPluginUpdateJobRoutes } from "./routes/plugin-update-jobs.js";
@@ -245,6 +245,9 @@ function staticCacheControlForPath(urlPath: string): string {
   return STATIC_PUBLIC_FILE_CACHE_CONTROL;
 }
 
+const LOCAL_CONTENT_SECURITY_POLICY =
+  "img-src 'self' data: blob:; media-src 'self' data: blob:";
+
 function createStaticResponseHeaders(args: StaticResponseHeadersArgs): Headers {
   const headers = new Headers();
   headers.set("content-type", args.contentType);
@@ -258,6 +261,12 @@ function createStaticResponseHeaders(args: StaticResponseHeadersArgs): Headers {
   }
   if (args.contentLength !== undefined) {
     headers.set("content-length", String(args.contentLength));
+  }
+  if (
+    args.contentType === "text/html" &&
+    !isCapabilityAllowed("remoteContentInPreviews")
+  ) {
+    headers.set("content-security-policy", LOCAL_CONTENT_SECURITY_POLICY);
   }
   return headers;
 }

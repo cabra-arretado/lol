@@ -2,10 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  getNotifications,
-  resetNotificationStore,
-} from "@/lib/notifications/notification-store";
+import { resetNotificationStore } from "@/lib/notifications/notification-store";
 import { createQueryClientTestHarness } from "@/test/queryClientTestHarness";
 import { MarketplacesSettingsSection } from "./MarketplacesSettingsSection";
 
@@ -72,82 +69,14 @@ afterEach(() => {
 });
 
 describe("MarketplacesSettingsSection", () => {
-  it("adds a marketplace through the server route", async () => {
-    const requests = stubFetch([OFFICIAL]);
+  it("hides the add form while remote marketplaces are denied", async () => {
+    stubFetch([OFFICIAL, ACME]);
     const { wrapper } = createQueryClientTestHarness();
     render(<MarketplacesSettingsSection />, { wrapper });
 
-    fireEvent.change(screen.getByLabelText("Marketplace source"), {
-      target: { value: " https://acme.test/marketplace.json " },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-
-    await vi.waitFor(() => {
-      const post = requests.find(
-        (request) =>
-          request.url === "/api/v1/marketplaces" &&
-          request.init?.method === "POST",
-      );
-      expect(JSON.parse(String(post?.init?.body))).toEqual({
-        source: "https://acme.test/marketplace.json",
-      });
-    });
-  });
-
-  it("offers a subdirectory for a git source and sends it with the source", async () => {
-    const requests = stubFetch([OFFICIAL]);
-    const { wrapper } = createQueryClientTestHarness();
-    render(<MarketplacesSettingsSection />, { wrapper });
-
-    expect(screen.queryByLabelText("Marketplace subdirectory")).toBe(null);
-    fireEvent.change(screen.getByLabelText("Marketplace source"), {
-      target: { value: "git:https://github.com/acme/agent-plugins.git@main" },
-    });
-    fireEvent.change(screen.getByLabelText("Marketplace subdirectory"), {
-      target: { value: " bb " },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-
-    await vi.waitFor(() => {
-      const post = requests.find(
-        (request) =>
-          request.url === "/api/v1/marketplaces" &&
-          request.init?.method === "POST",
-      );
-      expect(JSON.parse(String(post?.init?.body))).toEqual({
-        source: "git:https://github.com/acme/agent-plugins.git@main",
-        subdirectory: "bb",
-      });
-    });
-  });
-
-  it("drops a typed subdirectory when the source is no longer a git source", async () => {
-    const requests = stubFetch([OFFICIAL]);
-    const { wrapper } = createQueryClientTestHarness();
-    render(<MarketplacesSettingsSection />, { wrapper });
-
-    fireEvent.change(screen.getByLabelText("Marketplace source"), {
-      target: { value: "git:https://github.com/acme/agent-plugins.git" },
-    });
-    fireEvent.change(screen.getByLabelText("Marketplace subdirectory"), {
-      target: { value: "bb" },
-    });
-    fireEvent.change(screen.getByLabelText("Marketplace source"), {
-      target: { value: "https://acme.test/marketplace.json" },
-    });
-    expect(screen.queryByLabelText("Marketplace subdirectory")).toBe(null);
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-
-    await vi.waitFor(() => {
-      const post = requests.find(
-        (request) =>
-          request.url === "/api/v1/marketplaces" &&
-          request.init?.method === "POST",
-      );
-      expect(JSON.parse(String(post?.init?.body))).toEqual({
-        source: "https://acme.test/marketplace.json",
-      });
-    });
+    expect(await screen.findByText("Plugin marketplaces")).toBeTruthy();
+    expect(screen.queryByLabelText("Marketplace source")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
   });
 
   it("shows the subdirectory a git marketplace is read from", async () => {
@@ -168,32 +97,6 @@ describe("MarketplacesSettingsSection", () => {
         "git:https://acme.test/repo.git@main · subdirectory bb",
       ),
     ).toBeTruthy();
-  });
-
-  it("retains one alert when adding a marketplace fails", async () => {
-    stubFetch(
-      [OFFICIAL],
-      Response.json(
-        { error: "marketplace directory does not exist" },
-        { status: 400 },
-      ),
-    );
-    const { wrapper } = createQueryClientTestHarness();
-    render(<MarketplacesSettingsSection />, { wrapper });
-
-    fireEvent.change(screen.getByLabelText("Marketplace source"), {
-      target: { value: "path:/missing-marketplace" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-
-    await vi.waitFor(() => {
-      expect(getNotifications()).toEqual([
-        expect.objectContaining({
-          title: "Adding the marketplace failed",
-          description: "marketplace directory does not exist",
-        }),
-      ]);
-    });
   });
 
   it("offers Remove only for marketplaces other than bb-community", async () => {

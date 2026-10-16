@@ -480,27 +480,15 @@ describe("MachinesSettingsSection", () => {
     });
   });
 
-  it("uses a labeled Add a machine action", async () => {
+  it("hides Add a machine while remote host enrollment is denied", async () => {
     vi.mocked(sdk.system.config).mockResolvedValue(systemConfig());
     vi.mocked(sdk.hosts.list).mockResolvedValue([primaryHost, offlineHost]);
     stubSidebarBootstrapFetch();
 
     renderSection();
 
-    const addMachine = await screen.findByRole("button", {
-      name: "Add a machine",
-    });
-    expect(addMachine.textContent).toBe("Add a machine");
-    expect(addMachine.querySelector('[data-icon="Plus"]')).not.toBeNull();
-    fireEvent.click(addMachine);
-    expect(
-      await screen.findByRole("heading", { name: "Set up machine access" }),
-    ).toBeDefined();
-    expect(
-      screen.getByText(
-        "A new machine has to reach this server over the network. Choose the address it should use.",
-      ),
-    ).toBeDefined();
+    expect(await screen.findByText("Machines")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Add a machine" })).toBeNull();
   });
 
   it("requests an immediate daemon update retry", async () => {

@@ -49,4 +49,15 @@ describe("filterSettingsNavSections", () => {
     expect(ids.includes("files")).toBe(showsFiles);
     expect(ids).toContain("archived");
   });
+
+  it("hides Mobile and Updates in the personal edition", () => {
+    const ids = filterSettingsNavSections({
+      hasDaemon: true,
+      accessState: "unavailable",
+      fileOpenerCount: 0,
+    }).map((section) => section.id);
+    expect(ids).not.toContain("mobile");
+    expect(ids).not.toContain("updates");
+    expect(ids).toContain("machines");
+  });
 });

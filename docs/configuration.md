@@ -68,6 +68,14 @@ below describes one of these features, the personal edition behaves as follows:
   `http`, `https`, `ws` and `wss` request that is not to loopback, so remote
   images and scripts in previews do not load. The in-app browser keeps its own
   session and can still open any site you navigate to.
+- The app shell is served with
+  `Content-Security-Policy: img-src 'self' data: blob:; media-src 'self' data: blob:`,
+  so remote images and media in Markdown previews and agent output do not load
+  in a browser either.
+- The UI hides what the policy denies: Settings → Mobile and Settings →
+  Updates, the Add a machine action, the add-marketplace form, the skills.sh
+  registry browser (Skills opens your library), and the onboarding Devices
+  step.
 
 ## Repository worktree hooks
 

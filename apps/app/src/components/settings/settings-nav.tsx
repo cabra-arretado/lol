@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { isCapabilityAllowed, type CapabilityId } from "@bb/domain";
 import { matchPath, useLocation } from "react-router-dom";
 import { useHostDaemon, useLocalHostDaemonAccess } from "@/hooks/useHostDaemon";
 import type { LocalHostDaemonAccessState } from "@/lib/local-host-daemon-access";
@@ -29,6 +30,18 @@ export interface SettingsNavState {
   sections: readonly SettingsNavSection[];
 }
 
+const SECTION_CAPABILITIES: Partial<
+  Record<SettingsSectionId, readonly CapabilityId[]>
+> = {
+  mobile: ["mobileApp"],
+  updates: ["inAppUpdate", "desktopAutoUpdate"],
+};
+
+function isSectionCapabilityAllowed(sectionId: SettingsSectionId): boolean {
+  const capabilities = SECTION_CAPABILITIES[sectionId];
+  return capabilities === undefined || capabilities.some(isCapabilityAllowed);
+}
+
 export function filterSettingsNavSections({
   hasDaemon,
   accessState,
@@ -40,10 +53,11 @@ export function filterSettingsNavSections({
 }): readonly SettingsNavSection[] {
   return SETTINGS_NAV_SECTIONS.filter(
     (section) =>
-      section.id !== "files" ||
-      hasDaemon ||
-      accessState !== "unavailable" ||
-      fileOpenerCount > 0,
+      isSectionCapabilityAllowed(section.id) &&
+      (section.id !== "files" ||
+        hasDaemon ||
+        accessState !== "unavailable" ||
+        fileOpenerCount > 0),
   );
 }
 
