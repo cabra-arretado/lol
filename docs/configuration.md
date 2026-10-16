@@ -61,6 +61,13 @@ below describes one of these features, the personal edition behaves as follows:
   comma-separated list for both processes, for example
   `BB_EGRESS_ALLOWED_HOSTS=chatgpt.com,.openai.com`. An entry that starts with a
   dot also matches its subdomains.
+- The desktop app never checks for or installs updates, never signs in to or
+  syncs bb Connect, and only offers the built-in local server: Add Server, Set
+  Server URL and the Connect sign-in are gone from the Server menu, and a saved
+  remote target falls back to the local server. Its app windows refuse every
+  `http`, `https`, `ws` and `wss` request that is not to loopback, so remote
+  images and scripts in previews do not load. The in-app browser keeps its own
+  session and can still open any site you navigate to.
 
 ## Repository worktree hooks
 

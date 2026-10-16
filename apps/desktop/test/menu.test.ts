@@ -34,6 +34,7 @@ function menuArgs(
     },
     closeWindowOrSideTab: () => {},
     connectServersSkipReason: null,
+    remoteServersAllowed: true,
     createNewWindow: () => {},
     isMac: true,
     showBuiltinServer: true,
@@ -269,6 +270,25 @@ describe("application menu", () => {
     expect(addServer).toHaveBeenCalledTimes(1);
     serverSubmenu[5]?.click?.({} as never, undefined, {} as never);
     expect(setServerUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers only local servers when remote servers are not allowed", () => {
+    const template = buildApplicationMenuTemplate(
+      menuArgs(() => {}, {
+        connectServersSkipReason: "no-credential",
+        remoteServersAllowed: false,
+        servers: [{ checked: true, id: "builtin", name: BUILTIN_SERVER_NAME }],
+      }),
+    );
+    const labels = findServerSubmenu(template).map((item) => item.label);
+
+    expect(labels).not.toContain("Add Server…");
+    expect(labels).not.toContain(SET_SERVER_URL_MENU_LABEL);
+    expect(labels).toEqual([
+      BUILTIN_SERVER_NAME,
+      undefined,
+      expect.stringMatching(/^Show /u),
+    ]);
   });
 
   it("offers the Server menu under Desktop Settings with Window → Server as an alias", () => {

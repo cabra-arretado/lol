@@ -73,6 +73,7 @@ export interface InstallApplicationMenuArgs {
   serverDaemonLogsMenuEnabled: boolean;
   servers: ApplicationMenuServerItem[];
   connectServersSkipReason: ConnectServerSyncSkipReason | null;
+  remoteServersAllowed: boolean;
 }
 
 function createServerDaemonLogsMenuItems(
@@ -97,6 +98,7 @@ export type ServerMenuArgs = Pick<
   | "toggleBuiltinServer"
   | "addServer"
   | "connectServersSkipReason"
+  | "remoteServersAllowed"
   | "selectServer"
   | "servers"
   | "setServerUrl"
@@ -116,6 +118,20 @@ export function createServerMenuItems(
       type: "radio" as const,
     }),
   );
+  const showBuiltinServerItem: MenuItemConstructorOptions = {
+    checked: args.showBuiltinServer,
+    enabled: !args.servers.some(
+      (server) => server.id === "builtin" && server.checked,
+    ),
+    label: `Show ${builtinServerName(args.isMac ? "darwin" : "linux")}`,
+    type: "checkbox",
+    click() {
+      args.toggleBuiltinServer();
+    },
+  };
+  if (!args.remoteServersAllowed) {
+    return [...serverItems, { type: "separator" }, showBuiltinServerItem];
+  }
   const signInLabel =
     args.connectServersSkipReason === null
       ? undefined
@@ -151,17 +167,7 @@ export function createServerMenuItems(
       },
     },
     { type: "separator" },
-    {
-      checked: args.showBuiltinServer,
-      enabled: !args.servers.some(
-        (server) => server.id === "builtin" && server.checked,
-      ),
-      label: `Show ${builtinServerName(args.isMac ? "darwin" : "linux")}`,
-      type: "checkbox",
-      click() {
-        args.toggleBuiltinServer();
-      },
-    },
+    showBuiltinServerItem,
   ];
 }
 
