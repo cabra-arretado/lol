@@ -372,14 +372,14 @@ describe("consumer-specific config", () => {
     expect(serverConfig.BB_SERVER_BIND_HOST).toBe("127.0.0.1");
   });
 
-  it("honors an explicit wildcard server bind host", () => {
-    const serverConfig = loadServerConfig({
-      env: createServerRuntimeEnv({
-        BB_SERVER_BIND_HOST: "0.0.0.0",
+  it("refuses a wildcard server bind host in the personal edition", () => {
+    expect(() =>
+      loadServerConfig({
+        env: createServerRuntimeEnv({
+          BB_SERVER_BIND_HOST: "0.0.0.0",
+        }),
       }),
-    });
-
-    expect(serverConfig.BB_SERVER_BIND_HOST).toBe("0.0.0.0");
+    ).toThrow(/nonLoopbackBind/);
   });
 
   it("rejects an unsupported server bind host", () => {
@@ -718,14 +718,24 @@ describe("consumer-specific config", () => {
 
     const explicitViteDevConfig = loadViteDevConfig({
       env: {
-        BB_DEV_APP_HOST: "0.0.0.0",
+        BB_DEV_APP_HOST: "localhost",
         BB_DEV_APP_PORT: "4173",
         BB_SERVER_PORT: "4444",
         NODE_ENV: "development",
       },
     });
 
-    expect(explicitViteDevConfig.appHost).toBe("0.0.0.0");
+    expect(explicitViteDevConfig.appHost).toBe("localhost");
+    expect(() =>
+      loadViteDevConfig({
+        env: {
+          BB_DEV_APP_HOST: "0.0.0.0",
+          BB_DEV_APP_PORT: "4173",
+          BB_SERVER_PORT: "4444",
+          NODE_ENV: "development",
+        },
+      }),
+    ).toThrow(/nonLoopbackBind/);
   });
 
   it("requires the app dev port for Vite dev config", () => {

@@ -59,6 +59,7 @@ function createRuntimeConfig(): ServerRuntimeConfig {
   return {
     appUrl: "https://ambient-app.example.test",
     appVersion: "0.0.0-test",
+    isCapabilityAllowed: () => true,
     builtinSkillsRootPath: "/tmp/bb-test/builtin-skills",
     customModels: [],
     dataDir: "/tmp/bb-test",

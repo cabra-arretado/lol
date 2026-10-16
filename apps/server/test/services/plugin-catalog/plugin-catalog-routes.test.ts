@@ -64,6 +64,7 @@ describe("plugin catalog routes", () => {
       app,
       catalog,
       createPluginInstallJobs({ notifyChanged: () => {} }),
+      () => true,
     );
     return { app, catalog };
   }

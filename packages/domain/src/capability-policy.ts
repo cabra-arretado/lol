@@ -135,3 +135,35 @@ export function capabilityPolicyView(): CapabilityPolicy {
     })),
   };
 }
+
+export type CapabilityCheck = (id: CapabilityId) => boolean;
+
+export class CapabilityDeniedError extends Error {
+  readonly capability: CapabilityId;
+
+  constructor(id: CapabilityId) {
+    super(
+      `${PERSONAL_EDITION_CAPABILITIES[id].description} is disabled in the ${CAPABILITY_EDITION} edition (capability "${id}")`,
+    );
+    this.name = "CapabilityDeniedError";
+    this.capability = id;
+  }
+}
+
+export function assertCapabilityAllowed(
+  id: CapabilityId,
+  check: CapabilityCheck = isCapabilityAllowed,
+): void {
+  if (!check(id)) throw new CapabilityDeniedError(id);
+}
+
+export function capabilityGuardedFetch<Args extends unknown[], Result>(
+  id: CapabilityId,
+  fetchImpl: (...args: Args) => Promise<Result>,
+  check: CapabilityCheck = isCapabilityAllowed,
+): (...args: Args) => Promise<Result> {
+  return (...args) => {
+    if (!check(id)) return Promise.reject(new CapabilityDeniedError(id));
+    return fetchImpl(...args);
+  };
+}

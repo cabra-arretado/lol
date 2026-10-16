@@ -292,7 +292,7 @@ describe("plugin settings + storage", () => {
       const app = new Hono();
       registerPluginRoutes(
         app,
-        { config: { serverPort: 3334 }, db },
+        { config: { serverPort: 3334, isCapabilityAllowed: () => true }, db },
         service,
         createPluginInstallJobs({ notifyChanged: () => {} }),
         createPluginUpdateJobs({ notifyChanged: () => {} }),
@@ -357,7 +357,7 @@ describe("plugin settings + storage", () => {
       const app = new Hono();
       registerPluginRoutes(
         app,
-        { config: { serverPort: 3334 }, db },
+        { config: { serverPort: 3334, isCapabilityAllowed: () => true }, db },
         service,
         createPluginInstallJobs({ notifyChanged: () => {} }),
         createPluginUpdateJobs({ notifyChanged: () => {} }),

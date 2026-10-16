@@ -314,8 +314,8 @@ describe("bb-app start after the server moved", () => {
           pendingMoveImport: false,
         }),
         readServerMovedFile: async () => movedFile,
-        serverBindHost: "0.0.0.0",
-        serverListenerUrl: "http://0.0.0.0:39886",
+        serverBindHost: "127.0.0.1",
+        serverListenerUrl: "http://127.0.0.1:39886",
         shutdown: async () => {
           throw new Error("Unexpected startup failure");
         },
@@ -346,7 +346,7 @@ describe("bb-app start after the server moved", () => {
     expect(movedDaemonFiles).toEqual([movedFile, movedFile]);
     expect(responders.opens).toHaveLength(1);
     expect(responders.opens[0]).toMatchObject({
-      bindHost: "0.0.0.0",
+      bindHost: "127.0.0.1",
       movedFile,
       port: 39886,
     });

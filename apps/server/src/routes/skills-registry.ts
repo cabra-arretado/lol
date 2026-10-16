@@ -1,3 +1,4 @@
+import { assertCapabilityAllowed } from "@bb/domain";
 import type { Hono } from "hono";
 import {
   registrySkillEntriesRequestSchema,
@@ -25,6 +26,16 @@ import { installServerRegistrySkill } from "../services/skills/registry-skill-in
 import type { AppDeps } from "../types.js";
 
 export function registerSkillsRegistryRoutes(app: Hono, deps: AppDeps): void {
+  for (const path of ["/skills-registry", "/skills-registry/*"]) {
+    app.use(path, (_context, next) => {
+      assertCapabilityAllowed(
+        "skillsRegistry",
+        deps.config.isCapabilityAllowed,
+      );
+      return next();
+    });
+  }
+
   async function proxyUpstream<T>(run: () => Promise<T>): Promise<T> {
     try {
       return await run();

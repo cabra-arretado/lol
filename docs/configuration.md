@@ -27,6 +27,29 @@ Launcher status output is plain when stdout is redirected, including in CI.
 Set `FORCE_COLOR=1` to request color or `NO_COLOR=1` to disable it; `NO_COLOR`
 takes precedence. In-place progress updates require a stdout TTY.
 
+## Personal edition
+
+This fork ships a fixed capability policy (`packages/domain/src/capability-policy.ts`)
+that denies every network-facing capability. `bb capabilities`,
+`sdk.system.capabilities()`, and `GET /api/v1/system/capabilities` list it. No
+setting or environment variable re-enables a denied capability. Where a section
+below describes one of these features, the personal edition behaves as follows:
+
+- Telemetry is never sent, whatever `BB_TELEMETRY` or `telemetryEnabled` say.
+- The launcher never runs the in-app update shim, and the server's npm version
+  check fails closed, so Settings → Updates reports that the latest version is
+  unknown.
+- The remote marketplace catalog, its stats and icons are never fetched; the
+  bundled `bb-official` catalog still installs Docs, Tasks, Memory and other
+  bundled plugins. Adding a marketplace returns `403 capability_disabled`.
+- Installing plugins from `npm:` or `git:` sources, or from any marketplace
+  other than `bb-official`, returns `403 capability_disabled`; the periodic
+  plugin update check does not run.
+- The skills.sh registry routes and the mobile app release route return
+  `403 capability_disabled`.
+- The server and Vite dev server only listen on loopback (see
+  [Startup Flags](#startup-flags)).
+
 ## Repository worktree hooks
 
 Commit `.bb-env-setup.sh` when a managed worktree needs repository setup.
@@ -71,8 +94,8 @@ These entries are startup-only:
 Setting or unsetting one still reloads any other pending changes, but running
 processes keep their current values until a full launcher restart
 (`bb-app stop && bb-app start`) or a desktop app restart. In particular,
-changing or unsetting `BB_SERVER_BIND_HOST` does not close an existing
-`0.0.0.0` listener until that restart. `bb-app config refresh` names any
+changing `BB_SERVER_BIND_HOST` takes effect only after that restart.
+`bb-app config refresh` names any
 startup-only keys present in `config.json` or `env.json`.
 
 ## Stopping A Running bb
@@ -181,7 +204,7 @@ change the host-daemon protocol.
 | `BB_EXTERNAL_URL`              | `bb-app env`, or environment                       | Startup-only            | Internet-facing HTTPS base URL for generated public links; the fallback for `machineServerUrl`.                                                                                                                              |
 | `BB_MARKETPLACE_URL`           | `bb-app env`, or environment                       | Startup-only testing    | Manifest URL of the reserved `bb-community` marketplace. Default `https://getbb.app/marketplace/v2/marketplace.json` (falls back to v1 on 404); a custom URL is requested without fallback. Changes only `bb-community`.     |
 | `BB_SERVER_URL`                | `bb-app config`                                    | Remote CLI/host use     | Server targeted by the standalone `bb` CLI and `host-daemon` commands on this machine. Defaults to `http://127.0.0.1:38986`. It does not change where `npx bb-app` binds.                                                    |
-| `BB_SERVER_BIND_HOST`          | `bb-app env`, environment, or `--server-bind-host` | Startup-only            | Server listener host: `127.0.0.1` (default) or `0.0.0.0`. Not a `bb-app config` key. See [Startup Flags](#startup-flags).                                                                                                    |
+| `BB_SERVER_BIND_HOST`          | `bb-app env`, environment, or `--server-bind-host` | Startup-only            | Server listener host: only `127.0.0.1` in the personal edition. Not a `bb-app config` key. See [Startup Flags](#startup-flags).                                                                                                    |
 | `BB_SERVER_PORT`               | `bb-app env`, environment, or `--server-port`      | Startup-only            | HTTP listener port. Defaults to `38986`.                                                                                                                                                                                     |
 | `BB_HOST_DAEMON_PORT`          | `bb-app env`, environment, or `--host-daemon-port` | Startup-only            | Local host-daemon API port. Defaults to `38987`.                                                                                                                                                                             |
 | `BB_LOG_LEVEL`                 | `bb-app config`                                    | Startup-only debugging  | `trace`, `debug`, `info`, `warn`, `error`, or `fatal`.                                                                                                                                                                       |
@@ -1085,13 +1108,10 @@ Use launcher flags for per-run startup details:
 npx bb-app --data-dir ~/.bb-test --server-port 48886 --host-daemon-port 48887
 ```
 
-The server listens on `127.0.0.1` by default. Set
-`--server-bind-host 0.0.0.0` (or `BB_SERVER_BIND_HOST=0.0.0.0`) only when a
-trusted network boundary must reach the listener directly: the public API is
-unauthenticated and permits command execution and file reads. The only
-accepted bind hosts are `127.0.0.1` and `0.0.0.0` (IPv4 only); containers must
-also publish the port. With wildcard binding the startup `Server listening`
-and `app` lines show `http://0.0.0.0:<port>`.
+The server listens on `127.0.0.1`. The public API is unauthenticated and
+permits command execution and file reads, so the personal edition refuses
+`--server-bind-host 0.0.0.0` and `BB_SERVER_BIND_HOST=0.0.0.0` at startup (the
+`nonLoopbackBind` capability in `bb capabilities`).
 
 The data directory holds all bb-managed state: the SQLite database, logs, host
 identity, thread storage, custom themes, and plugins. It defaults to `~/.lol/`
@@ -1110,8 +1130,8 @@ Expo commands accept `BB_MOBILE_VARIANT=production` (the default) or `dev`;
 other values fail validation. The dev variant omits production Firebase and
 HTTPS app-link registration. See [mobile build instructions](../apps/mobile/README.md#android-local-apk-and-verification).
 
-For source development only, `pnpm dev`, `pnpm start:worktree`,
-`pnpm start:worktree-remote`, and `pnpm start` load the repo-root
+For source development only, `pnpm dev`, `pnpm start:worktree`, and
+`pnpm start` load the repo-root
 [dotenv-cli](https://github.com/entropitor/dotenv-cli) cascade. Add a repo-root
 `.env` only to override the defaults above.
 
@@ -1121,8 +1141,8 @@ For source development only, `pnpm dev`, `pnpm start:worktree`,
   checkout path. The data directory is `~/.lol-dev/<checkout-instance>/`, where
   the instance id is the sanitized checkout path relative to your home
   directory plus a short hash. The server and Vite bind to loopback; an
-  explicit `BB_DEV_APP_HOST` overrides the Vite listener, and remote HTTP dev
-  through it also needs `BB_SERVER_BIND_HOST=0.0.0.0` for realtime updates.
+  explicit `BB_DEV_APP_HOST` may only name a loopback host (`127.0.0.1`,
+  `localhost`, `::1`).
   It defaults `BB_SKIP_ONBOARDING` to `1`, so new instances skip the first-run
   setup screen; set `BB_SKIP_ONBOARDING=0` to retain setup or replay it from Settings.
 - `pnpm start:worktree` loads the same cascade and checkout-specific data
@@ -1131,8 +1151,6 @@ For source development only, `pnpm dev`, `pnpm start:worktree`,
   first-run setup is skipped, as with `pnpm dev`. Its data
   directory, ports, inherited skills, listener host, and telemetry policy take
   precedence over that instance's `config.json` or `env.json`.
-- `pnpm start:worktree-remote` does the same but binds the main server to
-  `0.0.0.0`; protect the port with a trusted network boundary.
 - `pnpm start` loads `.env`, `.env.local`, `.env.production`, and
   `.env.production.local`, and uses the packaged launcher policy with build
   outputs from `apps/app`, `apps/server`, and `apps/host-daemon`.

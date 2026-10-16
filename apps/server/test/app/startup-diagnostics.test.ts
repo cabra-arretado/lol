@@ -43,9 +43,9 @@ describe("server startup diagnostics", () => {
       name: "binds the default server listener to IPv4 loopback",
     },
     {
-      bindHost: "0.0.0.0",
-      expectedAddress: "0.0.0.0",
-      name: "binds the explicit wildcard listener to IPv4 only",
+      bindHost: "127.0.0.1",
+      expectedAddress: "127.0.0.1",
+      name: "binds an explicit loopback listener to IPv4 loopback",
     },
   ])("$name", async ({ bindHost, expectedAddress }) => {
     const serverConfig = loadServerConfig({

@@ -1,3 +1,5 @@
+import { assertCapabilityAllowed, type CapabilityCheck } from "@bb/domain";
+import { BUNDLED_MARKETPLACE_NAME } from "../services/plugin-catalog/bundled-marketplace-paths.js";
 import {
   pluginCatalogInstallRequestSchema,
   pluginMarketplaceAddRequestSchema,
@@ -29,6 +31,7 @@ export function registerPluginCatalogRoutes(
   app: Hono,
   catalog: PluginCatalogService,
   installJobs: PluginInstallJobs,
+  isAllowed: CapabilityCheck,
 ): void {
   app.get("/plugin-catalog", (context) =>
     context.json({ catalog: catalog.status() }),
@@ -98,6 +101,9 @@ export function registerPluginCatalogRoutes(
     } catch (error) {
       return context.json({ error: errorMessage(error) }, 422);
     }
+    if (entry.marketplace !== BUNDLED_MARKETPLACE_NAME) {
+      assertCapabilityAllowed("thirdPartyPluginInstall", isAllowed);
+    }
     const input = body.data;
     const job = installJobs.start({
       target: {
@@ -118,6 +124,7 @@ export function registerPluginCatalogRoutes(
   );
 
   app.post("/marketplaces", async (context) => {
+    assertCapabilityAllowed("remoteMarketplace", isAllowed);
     const json: unknown = await context.req.json().catch(() => null);
     const body = pluginMarketplaceAddRequestSchema.safeParse(json);
     if (!body.success) {

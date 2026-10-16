@@ -1,3 +1,5 @@
+import { capabilityGuardedFetch } from "@bb/domain";
+import { publicMarketplaceFetch } from "./services/plugin-catalog/marketplace-http.js";
 import { createPluginUpdateJobs } from "./services/plugins/plugin-update-jobs.js";
 import { registerPluginUpdateJobRoutes } from "./routes/plugin-update-jobs.js";
 import { recheckEnvironmentProvisioning } from "./services/threads/thread-environment-providers.js";
@@ -869,6 +871,11 @@ export function createApp(
     db: deps.db,
     appVersion: deps.config.appVersion,
     marketplaceUrl: deps.config.marketplaceUrl,
+    fetch: capabilityGuardedFetch(
+      "remoteMarketplace",
+      publicMarketplaceFetch,
+      deps.config.isCapabilityAllowed,
+    ),
     dataDir: deps.config.dataDir,
     plugins: pluginService,
     notifyCatalogChanged: () => deps.hub.notifySystem(["plugins-changed"]),
@@ -898,6 +905,7 @@ export function createApp(
     publicApi,
     pluginCatalogService,
     pluginInstallJobs,
+    deps.config.isCapabilityAllowed,
   );
   registerPluginRoutes(
     publicApi,

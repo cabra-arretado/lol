@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { delimiter } from "node:path";
-import { defaultFeatureFlags } from "@bb/domain";
+import { assertCapabilityAllowed, defaultFeatureFlags } from "@bb/domain";
 import { DEFAULTS } from "./defaults.js";
 import {
   APP_UPDATE_MODE_ENV_NAME,
@@ -137,7 +137,11 @@ function parsePortEnvValue(args: EnvVarParseArgs): number {
 
 export function parseServerBindHost(value: string): ServerBindHost {
   const trimmedValue = value.trim();
-  if (trimmedValue === "127.0.0.1" || trimmedValue === "0.0.0.0") {
+  if (trimmedValue === "127.0.0.1") {
+    return trimmedValue;
+  }
+  if (trimmedValue === "0.0.0.0") {
+    assertCapabilityAllowed("nonLoopbackBind");
     return trimmedValue;
   }
 

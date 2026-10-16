@@ -365,7 +365,7 @@ describe("plugin update service and routes", () => {
     registerPluginUpdateJobRoutes(app, updateJobs);
     registerPluginRoutes(
       app,
-      { config: { serverPort: 3334 }, db },
+      { config: { serverPort: 3334, isCapabilityAllowed: () => true }, db },
       service,
       createPluginInstallJobs({ notifyChanged: () => {} }),
       updateJobs,

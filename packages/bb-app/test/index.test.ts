@@ -35,7 +35,6 @@ import {
   resolveDataDir,
   resolveBbAppStartContext,
   resolveBbAppCommand,
-  resolveServerListenerUrl,
   resolveBundledCliLaunch,
   resolveWorktreeRuntimePolicy,
   runBbApp,
@@ -729,9 +728,9 @@ describe("bb-app launcher", () => {
     });
   });
 
-  it("runs the source update shim for a start unless --no-in-app-updates is passed", () => {
-    expect(shouldRunSourceAppUpdateShim([])).toBe(true);
-    expect(shouldRunSourceAppUpdateShim(["start"])).toBe(true);
+  it("never runs the source update shim in the personal edition", () => {
+    expect(shouldRunSourceAppUpdateShim([])).toBe(false);
+    expect(shouldRunSourceAppUpdateShim(["start"])).toBe(false);
     expect(shouldRunSourceAppUpdateShim(["--no-in-app-updates"])).toBe(false);
     expect(shouldRunSourceAppUpdateShim(["start", "--no-in-app-updates"])).toBe(
       false,
@@ -746,7 +745,7 @@ describe("bb-app launcher", () => {
       positionals: ["start"],
     });
     expect(shouldRunSourceAppUpdateShim(["start", "--in-app-updates"])).toBe(
-      true,
+      false,
     );
     expect(() =>
       parseLauncherArgs(["--in-app-updates", "--no-in-app-updates"]),
@@ -775,28 +774,6 @@ describe("bb-app launcher", () => {
     } finally {
       rmSync(dataDir, { recursive: true, force: true });
     }
-  });
-
-  it("reports the server bind host separately from the loopback connection URL", async () => {
-    const parsedArgs = parseLauncherArgs(["--server-bind-host", "0.0.0.0"]);
-    const dataDir = mkdtempSync(join(tmpdir(), "bb-app-bind-host-"));
-    const runtime = await resolveBbAppRuntimeState({
-      entrypointUrl: pathToFileURL("/repo/packages/bb-app/dist/bb-app.js").href,
-      env: { BB_DATA_DIR: dataDir },
-      homeDir: "/home/tester",
-      options: parsedArgs.options,
-      serverUrlMode: "local",
-    });
-
-    expect(parsedArgs.options.serverBindHost).toBe("0.0.0.0");
-    expect(runtime.serverEnv.BB_SERVER_BIND_HOST).toBe("0.0.0.0");
-    expect(
-      resolveServerListenerUrl({
-        bindHost: runtime.serverEnv.BB_SERVER_BIND_HOST,
-        port: runtime.context.serverPort,
-      }),
-    ).toBe("http://0.0.0.0:38986");
-    expect(runtime.context.serverUrl).toBe("http://127.0.0.1:38986");
   });
 
   it("strips parent thread context from the production server without stripping the CLI", async () => {
@@ -1601,7 +1578,7 @@ describe("bb-app launcher", () => {
         "env",
         "set",
         "BB_SERVER_BIND_HOST",
-        "0.0.0.0",
+        "127.0.0.1",
       ]),
     );
 

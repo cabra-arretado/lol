@@ -59,7 +59,7 @@ describe("bb connect hold", () => {
     expect(await hold.isActive()).toBe(false);
   });
 
-  it("starts the server's plugins with the data directory's connect hold, then settles registrations and update checks", async () => {
+  it("starts the server's plugins with the data directory's connect hold, then settles registrations without plugin update checks", async () => {
     const dataDir = await makeDataDir();
     await writeHold(dataDir);
     const logger = { error: vi.fn(), warn: vi.fn() };
@@ -85,7 +85,7 @@ describe("bb connect hold", () => {
       },
     });
 
-    expect(events).toEqual(["start", "registrations-settled", "update-checks"]);
+    expect(events).toEqual(["start", "registrations-settled"]);
     const hold = starts[0]?.hold;
     expect(hold).toMatchObject({
       sources: ["builtin:connect", "builtin:bb-account"],

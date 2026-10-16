@@ -23,6 +23,7 @@ import {
 } from "@bb/db";
 import {
   applyAppKeybindingOverrides,
+  assertCapabilityAllowed,
   capabilityPolicyView,
   appSettingsSchema,
   customThemeNameSchema,
@@ -160,6 +161,7 @@ export function registerSystemRoutes(
 
   const mobileAppReleases = createMobileAppReleaseService();
   get(routes.mobileAppReleases, async (context) => {
+    assertCapabilityAllowed("mobileApp", deps.config.isCapabilityAllowed);
     context.header("cache-control", "no-store");
     return context.json(await mobileAppReleases());
   });
