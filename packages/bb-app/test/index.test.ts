@@ -574,7 +574,9 @@ describe("bb-app launcher", () => {
     });
 
     expect(context.dataDir).toBe(join("/home/tester", ".lol"));
-    expect(context.configFile).toBe(join("/home/tester", ".lol", "config.json"));
+    expect(context.configFile).toBe(
+      join("/home/tester", ".lol", "config.json"),
+    );
     expect(context.envFile).toBe(join("/home/tester", ".lol", "env.json"));
     expect(context.serverPort).toBe(38986);
     expect(context.daemonPort).toBe(38987);
