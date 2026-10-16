@@ -58,7 +58,7 @@ checkout, but it is slower and less reliable for file watching.
 npx bb-app@latest
 ```
 
-Then open: `http://localhost:38886`
+Then open: `http://localhost:38986`
 
 To opt into the automated nightly channel:
 
@@ -87,7 +87,7 @@ npm config set allow-scripts=better-sqlite3,node-pty,@parcel/watcher --location=
 
 `npx bb-app@latest` downloads the published `bb-app` package, starts the server and
 local host daemon, and serves the web app. It stores bb-managed state under
-`~/.bb/` by default. If either managed child process exits unexpectedly, the
+`~/.lol/` by default. If either managed child process exits unexpectedly, the
 launcher restarts that child without stopping the other one. Press `Ctrl+C` in
 the terminal to stop both processes and exit with status `0`.
 
@@ -104,7 +104,7 @@ without forwarding service output to the terminal, so a stalled terminal cannot
 block service logging. To follow output with the default data directory:
 
 ```bash
-tail -F ~/.bb/logs/server-stdio.log ~/.bb/logs/host-daemon-stdio.log
+tail -F ~/.lol/logs/server-stdio.log ~/.lol/logs/host-daemon-stdio.log
 ```
 
 Launcher status output is plain when stdout is redirected, including in CI.
@@ -121,16 +121,16 @@ npx bb-app stop
 
 `stop` reads `bb-app-runtime.json` from the data directory, confirms that the
 recorded process really is that launcher, then stops it. Pass `--data-dir` when
-the bb you want to stop does not use the default `~/.bb/`.
+the bb you want to stop does not use the default `~/.lol/`.
 
 ### The `bb` command
 
 To control bb from outside bb, open **Settings → General → Command line** and
 choose **Install** next to **bb CLI**. Threads in bb already have `bb`; this
 is for your own terminals, scripts, and agents running outside bb, such as
-Claude Code or Codex. bb links a launcher from `~/.bb/bin/bb` into a folder on
+Claude Code or Codex. bb links a launcher from `~/.lol/bin/bb` into a folder on
 your PATH (`~/.local/bin` on Linux; `/opt/homebrew/bin`, `/usr/local/bin`, or
-`~/.local/bin` on macOS). On Windows it adds `~/.bb/bin` to your user PATH;
+`~/.local/bin` on macOS). On Windows it adds `~/.lol/bin` to your user PATH;
 open a new terminal afterwards. **Remove** takes it off again. bb leaves any
 other `bb` you already have in place.
 
@@ -144,7 +144,7 @@ npx --package bb-app bb settings cli-command install
 
 When bb has an update, Settings → Updates shows an **Update** button (or run
 `bb updates app apply`). bb downloads the new version into
-`~/.bb/app-versions/`, restarts into it, and reconnects the page. bb does not
+`~/.lol/app-versions/`, restarts into it, and reconnects the page. bb does not
 roll back: if the new version fails to start, run a newer release
 (`npx bb-app@latest`) or fix the cause. Later `npx bb-app` runs use the newer
 installed version; pass `--bundled` to run the copy npx downloaded instead.
@@ -174,7 +174,7 @@ npx --package bb-app bb --help
 
 The CLI uses the same `BB_SERVER_URL` and bb config resolution as the SDK. When
 unset, it targets the default local packaged server at
-`http://127.0.0.1:38886`.
+`http://127.0.0.1:38986`.
 
 ## Scripting with the SDK
 
@@ -195,7 +195,7 @@ console.log(await bb.threads.output({ threadId: String(thread.id) }));
 ```
 
 `new BBSdk()` uses the same `BB_SERVER_URL` and bb config resolution as the
-CLI. Pass `new BBSdk({ baseUrl: "http://host:38886" })` for remote or test
+CLI. Pass `new BBSdk({ baseUrl: "http://host:38986" })` for remote or test
 targets (see the remote-access note below). Scripts launched by bb already receive `BB_SERVER_URL` and
 `BB_THREAD_ID` in their environment.
 
@@ -244,7 +244,7 @@ standalone provider CLI.
 ## Configuration
 
 Use `bb-app config` for persistent non-secret package settings under
-`~/.bb/config.json`:
+`~/.lol/config.json`:
 
 ```bash
 npx bb-app config set BB_APP_URL https://<machine>.<tailnet>.ts.net
@@ -253,12 +253,12 @@ npx bb-app config refresh
 ```
 
 For remote access, use bb connect or publish the default loopback listener with
-Tailscale Serve. Direct tailnet or LAN access to port `38886` requires the
+Tailscale Serve. Direct tailnet or LAN access to port `38986` requires the
 explicit, security-sensitive `--server-bind-host 0.0.0.0` compatibility option;
 see the multiple-devices guide.
 
 Use `bb-app client ssh-target` to configure local editor opens for remote
-bb servers under `~/.bb/client.json`. The target is the value that works after
+bb servers under `~/.lol/client.json`. The target is the value that works after
 `ssh`, such as `devbox` or `user@devbox`:
 
 ```bash
@@ -266,7 +266,7 @@ npx bb-app client ssh-target set https://bb.example.test devbox --host-id host_a
 npx bb-app client ssh-target list
 ```
 
-Use `bb-app env` for provider credentials under `~/.bb/env.json`:
+Use `bb-app env` for provider credentials under `~/.lol/env.json`:
 
 ```bash
 npx bb-app env set OPENAI_API_KEY <key>

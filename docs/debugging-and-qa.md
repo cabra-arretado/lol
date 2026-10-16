@@ -7,7 +7,7 @@
 - `pnpm start:worktree-remote` is the trusted-network variant of `pnpm start:worktree`; it binds that server to all IPv4 interfaces.
 - `pnpm desktop` packages the Electron app and launches it against the installed data directory, ports and Electron user-data directory, the same targets a released build uses. It shares the single-instance lock with an installed bb: quit that first, or the launch focuses it instead of starting your build.
 - `pnpm desktop:worktree` packages and launches it against this checkout's data directory and deterministic ports, the same instance `pnpm start:worktree` uses, with Electron's user-data directory at `$BB_DATA_DIR/desktop` (override with `BB_DESKTOP_USER_DATA_DIR`). It refuses to start when the server or host-daemon port is busy, so a stale server cannot answer for your build. Set `BB_DESKTOP_OPEN_DEVTOOLS=1` to open DevTools. Both desktop commands always repackage first; machines without a Developer ID identity produce unsigned artifacts.
-- The packaged app defaults to server/frontend `:38886`, host daemon `:38887`, data dir `~/.bb/`, and logs under `~/.bb/logs/`.
+- The packaged app defaults to server/frontend `:38986`, host daemon `:38987`, data dir `~/.lol/`, and logs under `~/.lol/logs/`.
 - `bb-app` (including `pnpm start`), `bb-server`, and `bb-host-daemon` capture service stdout and stderr in `logs/server-stdio.log` and `logs/host-daemon-stdio.log` under the selected data directory. These append across restarts and are separate from rotating application logs. Use `tail -F` on these files for console output and early startup errors; service output is not forwarded to the launcher's terminal.
 - Entity IDs in URLs (`proj_*`, `thr_*`) are primary keys. Query them directly against the active data dir: `sqlite3 <data>/bb.db "SELECT * FROM threads WHERE id = 'thr_xxx';"`.
 - API routes are under `/api/v1/`, for example `GET /api/v1/threads/:id`. Use `curl` against the server API to isolate frontend issues from server behavior.
@@ -453,7 +453,7 @@ In a second terminal, run:
 ```bash
 unset BB_SERVER_URL BB_HOST_DAEMON_PORT BB_THREAD_ID BB_ENVIRONMENT_ID BB_THREAD_STORAGE BB_PROJECT_ID BB_CLI BB_CLI_REEXEC
 pnpm bb:dev thread spawn --project proj_personal --provider codex --prompt "Run git status." --json
-ls ~/.bb/provider-recordings/raw/codex/
+ls ~/.lol/provider-recordings/raw/codex/
 ```
 
 The layout is `<dir>/<providerId>/<threadId>/<direction>.ndjson`, plus a
@@ -479,7 +479,7 @@ payloads. Use it to reproduce performance problems that only appear at scale.
 - Start the dev app once first (`pnpm dev`), then stop it and
   seed. The fixture then attaches to the real local host, so agents still run.
 - By default the command seeds this checkout's dev data dir. Pass
-  `--data-dir <path>` for another target. The command refuses to touch `~/.bb`.
+  `--data-dir <path>` for another target. The command refuses to touch `~/.lol`.
 - Scale flags: `--projects`, `--threads`, `--events`, `--seed`. `--reset`
   deletes the database file first. Without `--reset` the fixture appends.
 - Example: `pnpm seed:perf -- --reset --events 400000`.
@@ -505,13 +505,13 @@ Compare runs on an idle machine; the numbers are wall-clock timings.
 ## Provider Corpus
 
 The provider corpus is a private set of real production threads extracted from
-a personal `~/.bb/bb.db`. It is the regression oracle for timeline projection:
+a personal `~/.lol/bb.db`. It is the regression oracle for timeline projection:
 every change must project the same rows and build timelines at the same speed.
 The corpus contains real prompts, code, and paths, so it is **never
 committed**; `.gitignore` blocks every `provider-corpus/` directory except the
 in-repo harness and scripts.
 
-- Location: `~/.bb/provider-corpus/` by default. Tests read it through
+- Location: `~/.lol/provider-corpus/` by default. Tests read it through
   `BB_PROVIDER_CORPUS_DIR` and skip when the variable is unset or the directory
   has no `manifest.json`, so CI and fresh checkouts stay green.
 - Layout: `manifest.json` (thread selection and reasons), `profile.json`,
@@ -604,7 +604,7 @@ two directories offline:
 
 ```bash
 pnpm exec tsx scripts/provider-corpus/classify-row-diff.ts \
-  ~/.bb/provider-corpus/snapshots/rows ~/.bb/provider-corpus/snapshots/rows.<ws> \
+  ~/.lol/provider-corpus/snapshots/rows ~/.lol/provider-corpus/snapshots/rows.<ws> \
   --classes apps/server/test/provider-corpus/allowlists/<ws>-row-classes.json --verbose
 ```
 

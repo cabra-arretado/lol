@@ -67,7 +67,7 @@ const macConfigSchema = z
 const linuxConfigSchema = z
   .object({
     category: z.literal("Development"),
-    executableName: z.enum(["bb", "bb-nightly"]),
+    executableName: z.enum(["lol", "lol-nightly"]),
     icon: z.string().min(1),
     target: z.tuple([
       z
@@ -528,7 +528,7 @@ describe("electron-builder signing config", () => {
 
     expect(config.linux).toMatchObject({
       category: "Development",
-      executableName: "bb",
+      executableName: "lol",
       target: [{ arch: ["x64"], target: "AppImage" }],
     });
     expect(config.toolsets.appimage).toBe("1.0.3");
@@ -569,11 +569,11 @@ describe("electron-builder signing config", () => {
     });
     const nightlyRelease = createDesktopReleaseInfo("nightly");
 
-    expect(config.appId).toBe("dev.bb.desktop.nightly");
-    expect(config.productName).toBe("bb Nightly");
-    expect(config.artifactName).toBe("bb-nightly-${version}-${arch}.${ext}");
+    expect(config.appId).toBe("dev.lol.desktop.nightly");
+    expect(config.productName).toBe("lol Nightly");
+    expect(config.artifactName).toBe("lol-nightly-${version}-${arch}.${ext}");
     expect(config.linux.icon).toBe("assets/icon-nightly.png");
-    expect(config.linux.executableName).toBe("bb-nightly");
+    expect(config.linux.executableName).toBe("lol-nightly");
     expect(config.mac.icon).toBe("assets/icon-nightly.icns");
     await expect(
       access(resolve(desktopPackageRoot, config.mac.icon)),

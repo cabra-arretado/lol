@@ -59,7 +59,7 @@ yellow icon, and auto-update feed.
 npx bb-app@latest
 ```
 
-Then open `http://localhost:38886`.
+Then open `http://localhost:38986`.
 
 To control bb from outside bb with the `bb` CLI, open **Settings → General →
 Command line** and choose **Install**. See
@@ -118,7 +118,7 @@ pnpm dev
 That starts the Vite app and proxies API and WebSocket traffic to a separate
 dev server. The launcher prints the actual ports at startup. Each checkout gets
 a data directory under
-`~/.bb-dev/<checkout-instance>/` and deterministic high ports derived from the
+`~/.lol-dev/<checkout-instance>/` and deterministic high ports derived from the
 checkout path. The checkout instance id is the sanitized path to the checkout,
 relative to your home directory, plus a short hash suffix. Separate worktrees
 can run alongside each other and the packaged `npx bb-app@latest` instance.

@@ -929,7 +929,7 @@ function StoragePage({
                       <CleanupRow
                         title="Development instances without a checkout"
                         size={missingDevBytes}
-                        description={`${plural(missingDev.length, "development instance")} in ~/.bb-dev whose source checkout no longer exists. Servers still running from them are stopped before removal.`}
+                        description={`${plural(missingDev.length, "development instance")} in ~/.lol-dev whose source checkout no longer exists. Servers still running from them are stopped before removal.`}
                         action="Remove instances"
                         disabled={locked || missingDev.length === 0}
                         onAction={() =>
@@ -1254,7 +1254,7 @@ function StoragePage({
                         Delete development data when its checkout is removed
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        After scans, remove ~/.bb-dev folders with missing
+                        After scans, remove ~/.lol-dev folders with missing
                         checkouts and stop their servers. Checks run hourly,
                         including for existing development data.
                       </span>
@@ -1882,7 +1882,7 @@ function DeveloperStorage({
     <section className="space-y-3">
       <SectionHeading
         title="BB development storage"
-        description="Databases, logs, and thread files from local development instances in ~/.bb-dev."
+        description="Databases, logs, and thread files from local development instances in ~/.lol-dev."
       />
       <div className="space-y-3 rounded-lg border border-border bg-card px-4 py-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">

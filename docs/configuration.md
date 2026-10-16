@@ -1,8 +1,8 @@
 # Configuration
 
 The packaged `npx bb-app` flow stores persistent package settings under
-`~/.bb/config.json`, provider environment values under `~/.bb/env.json`, and
-client SSH target mappings under `~/.bb/client.json`.
+`~/.lol/config.json`, provider environment values under `~/.lol/env.json`, and
+client SSH target mappings under `~/.lol/client.json`.
 
 Use `bb-app config` for non-secret bb settings and `bb-app env` for provider
 credentials and provider-specific environment:
@@ -49,8 +49,8 @@ For the packaged app, prefer `bb-app config`, `bb-app env`, and launcher flags
 over shell variables. Source-development commands still load `.env` files
 (see [Source Development](#source-development)).
 
-After `bb-app config` writes `~/.bb/config.json` or `bb-app env` writes
-`~/.bb/env.json`, it asks the running local server to reload. If bb is not
+After `bb-app config` writes `~/.lol/config.json` or `bb-app env` writes
+`~/.lol/env.json`, it asks the running local server to reload. If bb is not
 running, the new values apply on the next start. If you edit either file by
 hand, run `npx bb-app config refresh` to apply it to a running server.
 
@@ -81,7 +81,7 @@ A running `bb-app start` writes `<dataDir>/bb-app-runtime.json` (launcher
 process id, server URL, version, start time, and launch mode) and removes it on
 exit. Do not edit it. `npx bb-app stop` uses it to stop the bb that owns the
 data directory; pass the same `--data-dir` you started with when it is not the
-default `~/.bb/`. The macOS desktop app uses it to offer stopping a bb it did
+default `~/.lol/`. The macOS desktop app uses it to offer stopping a bb it did
 not start. Both verify the recorded process is a bb launcher before signalling
 it, so a stale file cannot stop an unrelated process.
 
@@ -180,10 +180,10 @@ change the host-daemon protocol.
 | `BB_APP_URL`                   | `bb-app config`                                    | Optional for remote use | Human-facing app URL used for generated links, allowed browser origins, and the allowed DNS hostname for requests. Leave empty for local-only use. Live when set with `bb-app config`.                                       |
 | `BB_EXTERNAL_URL`              | `bb-app env`, or environment                       | Startup-only            | Internet-facing HTTPS base URL for generated public links; the fallback for `machineServerUrl`.                                                                                                                              |
 | `BB_MARKETPLACE_URL`           | `bb-app env`, or environment                       | Startup-only testing    | Manifest URL of the reserved `bb-community` marketplace. Default `https://getbb.app/marketplace/v2/marketplace.json` (falls back to v1 on 404); a custom URL is requested without fallback. Changes only `bb-community`.     |
-| `BB_SERVER_URL`                | `bb-app config`                                    | Remote CLI/host use     | Server targeted by the standalone `bb` CLI and `host-daemon` commands on this machine. Defaults to `http://127.0.0.1:38886`. It does not change where `npx bb-app` binds.                                                    |
+| `BB_SERVER_URL`                | `bb-app config`                                    | Remote CLI/host use     | Server targeted by the standalone `bb` CLI and `host-daemon` commands on this machine. Defaults to `http://127.0.0.1:38986`. It does not change where `npx bb-app` binds.                                                    |
 | `BB_SERVER_BIND_HOST`          | `bb-app env`, environment, or `--server-bind-host` | Startup-only            | Server listener host: `127.0.0.1` (default) or `0.0.0.0`. Not a `bb-app config` key. See [Startup Flags](#startup-flags).                                                                                                    |
-| `BB_SERVER_PORT`               | `bb-app env`, environment, or `--server-port`      | Startup-only            | HTTP listener port. Defaults to `38886`.                                                                                                                                                                                     |
-| `BB_HOST_DAEMON_PORT`          | `bb-app env`, environment, or `--host-daemon-port` | Startup-only            | Local host-daemon API port. Defaults to `38887`.                                                                                                                                                                             |
+| `BB_SERVER_PORT`               | `bb-app env`, environment, or `--server-port`      | Startup-only            | HTTP listener port. Defaults to `38986`.                                                                                                                                                                                     |
+| `BB_HOST_DAEMON_PORT`          | `bb-app env`, environment, or `--host-daemon-port` | Startup-only            | Local host-daemon API port. Defaults to `38987`.                                                                                                                                                                             |
 | `BB_LOG_LEVEL`                 | `bb-app config`                                    | Startup-only debugging  | `trace`, `debug`, `info`, `warn`, `error`, or `fatal`.                                                                                                                                                                       |
 | `BB_TELEMETRY`                 | `bb-app env`, or environment                       | Startup-only            | `false` always disables anonymous usage telemetry, overriding the `telemetryEnabled` setting.                                                                                                                                |
 | `BB_SKIP_ONBOARDING`           | Environment                                        | Startup-only            | Default false. `1` marks first-run setup completed at startup when it is not yet, so the setup screen is skipped. Settings → General can still replay it. `pnpm dev` and `pnpm start:worktree` default it to `1`; an explicit `0` retains setup.                       |
@@ -289,7 +289,7 @@ it fails, titles fall back to the start of the prompt and commits to
 `bb-cloud-ai` skill.
 
 The removed `BB_INFERENCE`, `BB_INFERENCE_FALLBACK`, and `BB_TRANSCRIPTION`
-keys are ignored with a warning in `~/.bb/config.json`, and `bb-app config set`
+keys are ignored with a warning in `~/.lol/config.json`, and `bb-app config set`
 refuses them.
 
 bb accepts voice recordings up to 25 MB; a service may set a lower limit, and
@@ -425,7 +425,7 @@ the current model's supported efforts from low to high.
 
 ## Client SSH Targets
 
-`~/.bb/client.json` is local to the machine showing the UI; the remote server
+`~/.lol/client.json` is local to the machine showing the UI; the remote server
 does not read it. It maps a server and work host to an SSH target (the value
 that works after `ssh`, such as `devbox`, `user@devbox`, or a `Host` entry in
 `~/.ssh/config`) so the local helper can open remote paths in local editors and
@@ -508,7 +508,7 @@ the registry's `npx` or `uvx` package on the thread's host.
 ## Custom Models
 
 Register extra picker models with top-level `customModels` in
-`~/.bb/config.json`, for a model the provider accepts but does not list. There
+`~/.lol/config.json`, for a model the provider accepts but does not list. There
 is no set/unset CLI: edit the JSON, then run `npx bb-app config refresh` or
 restart bb. `bb-app config list` prints the entries.
 
@@ -550,12 +550,12 @@ remain separate. See `bb guide agent-configuration`.
 ## Skills
 
 User-level skills live under `<dataDir>/skills/<name>/SKILL.md` (usually
-`~/.bb/skills`). Project skills live under
+`~/.lol/skills`). Project skills live under
 `<workspace>/.bb/skills/<name>/SKILL.md`. Enabled plugins contribute
 `skills/<name>/SKILL.md` (relocatable with the manifest's `bb.skills` field).
 Project skills override user skills, which override plugin skills, by name.
 
-Top-level `sharedSkillRoots` in `~/.bb/config.json` adds one provider-neutral
+Top-level `sharedSkillRoots` in `~/.lol/config.json` adds one provider-neutral
 skill collection: `{"user": [...], "project": [...]}` relative paths, resolved
 from the home directory and the workspace. bb indexes them read-only and
 injects selected skills into every provider; bb user and project skills win on
@@ -617,7 +617,7 @@ opt out.
 ### Machine installer
 
 `BB_DATA_DIR` on the installer selects the machine's state directory instead of
-`~/.bb-machines/<server-host>`. Enrollment refuses the default `~/.bb` unless its
+`~/.bb-machines/<server-host>`. Enrollment refuses the default `~/.lol` unless its
 `host-id` already names this machine.
 
 On Linux the installer installs a persistent systemd user service, retrying with
@@ -1094,7 +1094,7 @@ also publish the port. With wildcard binding the startup `Server listening`
 and `app` lines show `http://0.0.0.0:<port>`.
 
 The data directory holds all bb-managed state: the SQLite database, logs, host
-identity, thread storage, custom themes, and plugins. It defaults to `~/.bb/`
+identity, thread storage, custom themes, and plugins. It defaults to `~/.lol/`
 for the packaged app. Use `--data-dir` for fully isolated instances.
 
 Other launcher flags: `--no-in-app-updates` ([In-App Updates](#in-app-updates))
@@ -1118,7 +1118,7 @@ For source development only, `pnpm dev`, `pnpm start:worktree`,
 - `pnpm dev` loads `.env`, `.env.local`, `.env.development`, and
   `.env.development.local`, then overrides `BB_DATA_DIR`, the server URL and
   port, the host-daemon port, and the Vite port with values derived from the
-  checkout path. The data directory is `~/.bb-dev/<checkout-instance>/`, where
+  checkout path. The data directory is `~/.lol-dev/<checkout-instance>/`, where
   the instance id is the sanitized checkout path relative to your home
   directory plus a short hash. The server and Vite bind to loopback; an
   explicit `BB_DEV_APP_HOST` overrides the Vite listener, and remote HTTP dev

@@ -17,7 +17,7 @@ typography, persisted server-side and applied live to every open window.
 Light/dark mode is a separate per-client setting the theme layers on top of.
 Custom themes live on
 disk, one folder per theme, at <bb-data-dir>/theme/<name>/theme.css (the packaged
-app uses ~/.bb/theme/…). The folder name is the theme id.
+app uses ~/.lol/theme/…). The folder name is the theme id.
 
   bb theme list                  Built-in and custom themes; shows the active one
   bb theme dir                   Print the custom-theme directory (where to author)
@@ -81,7 +81,7 @@ identified by its plugin and its id, so two plugins may use the same id; pass
 message through the current choice. Settings → AI services has the same
 controls. Each plugin chooses its own model. The removed `BB_INFERENCE`,
 `BB_INFERENCE_FALLBACK`, and `BB_TRANSCRIPTION` variables are ignored with a
-warning in `~/.bb/config.json`, and `bb-app config set` refuses them.
+warning in `~/.lol/config.json`, and `bb-app config set` refuses them.
 
 General keys: `bb settings general` accepts any key from `generalSettings` in
 `bb settings show`; an unknown key or wrongly shaped value is rejected with the
@@ -115,7 +115,7 @@ General. Machine-related keys (`machineServerUrl`, `defaultMachineAccess`,
   threads in the app without the confirmation popup; the toast still offers
   Undo. CLI and SDK archive calls are always non-interactive.
 - `streamerMode` (default false) hides every `customModels` entry from
-  `~/.bb/config.json` in all model lists (pickers, `bb provider models`, and
+  `~/.lol/config.json` in all model lists (pickers, `bb provider models`, and
   the SDK) during a screen share. The entries stay in the config file; a
   request that names a hidden model still runs with it, and default model
   resolution still sees the full list.
@@ -148,8 +148,8 @@ Command line: Settings → General → Command line puts the `bb` command on PAT
 on the computer that runs the bb server, so the user, a script, or an agent
 running outside bb (such as Claude Code or Codex) can control bb; threads in bb
 already have `bb`. `bb settings cli-command` shows the state, and `install` or
-`remove` changes it. Install links the launcher at `~/.bb/bin/bb` into a PATH
-folder such as `~/.local/bin` (on Windows it adds `~/.bb/bin` to the user
+`remove` changes it. Install links the launcher at `~/.lol/bin/bb` into a PATH
+folder such as `~/.local/bin` (on Windows it adds `~/.lol/bin` to the user
 PATH). bb never replaces another `bb`: install is refused while one runs first
 in a new terminal. Only an installed bb (`npx bb-app` or the desktop app)
 offers this; a source checkout does not.

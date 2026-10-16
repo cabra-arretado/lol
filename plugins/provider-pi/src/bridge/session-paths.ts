@@ -19,7 +19,7 @@ export function resolvePiBridgeSessionDir(
     return resolve(configuredSessionDir);
   }
 
-  return join(homedir(), ".bb", "pi-bridge-sessions");
+  return join(homedir(), ".lol", "pi-bridge-sessions");
 }
 
 export function resolvePiSessionFilePath(

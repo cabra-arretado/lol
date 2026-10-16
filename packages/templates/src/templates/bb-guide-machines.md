@@ -286,7 +286,7 @@ newer on the PATH). `bb server unlock` is a last resort: everything since the
 move is lost on that copy, it refuses while the new server still answers unless
 `--force` is passed, and it refuses while the machine service is installed.
 `unlock`, `delete-old-copy`, `allow-connect`, and `install-machine-service`
-act on `BB_DATA_DIR` or `~/.bb` unless `--data-dir <dir>` is passed.
+act on `BB_DATA_DIR` or `~/.lol` unless `--data-dir <dir>` is passed.
 
 ## Local daemon lifecycle
 
@@ -318,7 +318,7 @@ for a directory that is already enrolled. These are local primitives:
 
 `bb machine enroll --bootstrap-file <path>` or `bb machine enroll --bootstrap-env <NAME>` consumes a private enrollment bundle prepared by core. Supply exactly one source. The environment variable is removed from the CLI process after reading it; files remain under the caller's ownership. Neither command prints the bundle or credentials.
 
-The CLI refuses another host or server identity in the selected machine directory. Repeating enrollment with the same persisted identity succeeds, including after the original bundle expired. Machine data defaults to `~/.bb-machines/<server-host>`; `BB_DATA_DIR` can select another isolated machine directory, but enrollment refuses the default `~/.bb` directory unless its `host-id` already names this machine.
+The CLI refuses another host or server identity in the selected machine directory. Repeating enrollment with the same persisted identity succeeds, including after the original bundle expired. Machine data defaults to `~/.bb-machines/<server-host>`; `BB_DATA_DIR` can select another isolated machine directory, but enrollment refuses the default `~/.lol` directory unless its `host-id` already names this machine.
 
 The installer accepts `--bootstrap-env <NAME>` and installs a private CLI at `~/.local/bin/bb` without replacing an existing path; non-login transports can use `command -v bb` with `~/.local/bin/bb` as a fallback. On a systemd host whose user bus is unreachable, installation fails before enrolling; containers and machines without systemd as init run a detached daemon. `BB_INSTALL_SKIP_SERVICE=1` leaves a detached daemon that does not start after reboot.
 

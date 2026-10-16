@@ -256,7 +256,7 @@ export async function removeDeveloperEntries(
   retainWorker: () => { dispose(): void },
 ) {
   assertDeveloperInput(input);
-  if (path.basename(input.rootPath) !== ".bb-dev")
+  if (path.basename(input.rootPath) !== ".lol-dev")
     throw new Error("Invalid developer storage path");
   let root: string;
   try {

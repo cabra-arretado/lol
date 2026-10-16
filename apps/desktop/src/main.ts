@@ -669,7 +669,7 @@ const desktopLogger: DesktopAutoUpdateLogger = {
 function resolveDataDirFromEnv(args: ResolveDataDirFromEnvArgs): string {
   const rawDataDir = args.env.BB_DATA_DIR?.trim();
   if (rawDataDir === undefined || rawDataDir.length === 0) {
-    return join(args.homeDir, ".bb");
+    return join(args.homeDir, ".lol");
   }
   if (rawDataDir === "~") {
     return args.homeDir;
@@ -2865,7 +2865,7 @@ async function runDesktopApp(): Promise<void> {
 
   const applicationName = app.isPackaged
     ? DESKTOP_RELEASE_INFO.applicationName
-    : "bb-dev";
+    : "lol-dev";
   app.setName(applicationName);
   installAboutPanel(applicationName);
 

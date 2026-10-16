@@ -522,7 +522,7 @@ export function createStorage(
     environments: Environment[],
     projects: Awaited<ReturnType<BbPluginApi["sdk"]["projects"]["list"]>>,
   ): Promise<Scan["developerStorage"]> {
-    const developerRoot = `${homeDirectory.replace(/[\\/]$/, "")}/.bb-dev`;
+    const developerRoot = `${homeDirectory.replace(/[\\/]$/, "")}/.lol-dev`;
     const result = await worker.call(
       "measure",
       {

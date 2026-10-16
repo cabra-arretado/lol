@@ -28,7 +28,7 @@ For a private tailnet route, keep bb on its loopback default and publish it
 through Tailscale Serve:
 
 ```bash
-tailscale serve --bg --https=443 http://127.0.0.1:38886
+tailscale serve --bg --https=443 http://127.0.0.1:38986
 npx bb-app config set BB_APP_URL https://<machine>.<tailnet>.ts.net
 ```
 
@@ -37,7 +37,7 @@ boundary for this route; do not expose the server through Funnel or the public
 internet. bb connect URLs require the paired account owner's session.
 
 Existing remote host daemons that target a direct tailnet IP or
-`http://<machine>.<tailnet>.ts.net:38886` must migrate before restarting an
+`http://<machine>.<tailnet>.ts.net:38986` must migrate before restarting an
 upgraded server. Prefer pairing bb connect and re-adding the machine from
 Settings → Machines so its installer records the account-gated route. The
 private alternative is to open bb through the Tailscale Serve URL and re-run
@@ -174,7 +174,7 @@ installer), local API port, and launchd/systemd service. The installer persists
 the selected port in that data directory. Subsequent runs reuse it; pass
 `--host-daemon-port <port>` to the installer to override the selection. One machine can therefore
 serve several bb servers at once, and joining never touches a full local bb
-install's `~/.bb`. Each instance keeps its own `bb-app` under that data
+install's `~/.lol`. Each instance keeps its own `bb-app` under that data
 directory and self-updates against its own server, so servers running different
 bb versions on one machine remain isolated.
 

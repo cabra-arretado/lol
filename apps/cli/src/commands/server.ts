@@ -401,7 +401,7 @@ export function registerServerCommands(
     )
     .option(
       "--data-dir <dir>",
-      "Data directory to import into (default: BB_DATA_DIR or ~/.bb)",
+      "Data directory to import into (default: BB_DATA_DIR or ~/.lol)",
     )
     .option("--yes", "Skip the confirmation prompt")
     .option("--json", "Print machine-readable JSON output")
@@ -444,7 +444,7 @@ export function registerServerCommands(
     )
     .option(
       "--data-dir <dir>",
-      "Data directory of the old server copy (default: BB_DATA_DIR or ~/.bb)",
+      "Data directory of the old server copy (default: BB_DATA_DIR or ~/.lol)",
     )
     .option(
       "--force",
@@ -525,7 +525,7 @@ export function registerServerCommands(
     )
     .option(
       "--data-dir <dir>",
-      "Data directory the server moved away from (default: BB_DATA_DIR or ~/.bb)",
+      "Data directory the server moved away from (default: BB_DATA_DIR or ~/.lol)",
     )
     .option("--yes", "Skip the confirmation prompt")
     .option("--json", "Print machine-readable JSON output")
@@ -555,7 +555,7 @@ export function registerServerCommands(
     )
     .option(
       "--data-dir <dir>",
-      "Data directory of the imported server (default: BB_DATA_DIR or ~/.bb)",
+      "Data directory of the imported server (default: BB_DATA_DIR or ~/.lol)",
     )
     .option("--yes", "Skip the confirmation prompt")
     .option("--json", "Print machine-readable JSON output")
@@ -594,7 +594,7 @@ export function registerServerCommands(
     )
     .option(
       "--data-dir <dir>",
-      "Data directory of the old server copy (default: BB_DATA_DIR or ~/.bb)",
+      "Data directory of the old server copy (default: BB_DATA_DIR or ~/.lol)",
     )
     .option("--yes", "Skip the confirmation prompt")
     .option("--json", "Print machine-readable JSON output")

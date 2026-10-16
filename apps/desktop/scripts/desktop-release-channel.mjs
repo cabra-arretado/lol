@@ -33,16 +33,16 @@ export function resolveDesktopBuildPlatform(nodePlatform) {
 export function createDesktopReleaseConfig(channel) {
   if (channel === "nightly") {
     return {
-      appId: "dev.bb.desktop.nightly",
-      applicationName: "bb Nightly",
-      artifactName: "bb-nightly-${version}-${arch}.${ext}",
+      appId: "dev.lol.desktop.nightly",
+      applicationName: "lol Nightly",
+      artifactName: "lol-nightly-${version}-${arch}.${ext}",
       iconFileName: "icon-nightly.png",
       // The Linux binary name must differ from stable so both channels can be
       // installed at once without one shadowing the other on PATH.
-      linuxExecutableName: "bb-nightly",
+      linuxExecutableName: "lol-nightly",
       macIconPath: "assets/icon-nightly.icns",
       releaseTag: "desktop-nightly",
-      windowsInstallName: "bb-nightly",
+      windowsInstallName: "lol-nightly",
       updateMetadataFileNames: {
         linux: "nightly-linux.yml",
         macos: "nightly-mac.yml",
@@ -52,14 +52,14 @@ export function createDesktopReleaseConfig(channel) {
   }
 
   return {
-    appId: "dev.bb.desktop",
-    applicationName: "bb",
+    appId: "dev.lol.desktop",
+    applicationName: "lol",
     artifactName: "${productName}-${version}-${arch}.${ext}",
     iconFileName: "icon.png",
-    linuxExecutableName: "bb",
+    linuxExecutableName: "lol",
     macIconPath: "assets/icon.icns",
     releaseTag: "desktop-latest",
-    windowsInstallName: "bb",
+    windowsInstallName: "lol",
     updateMetadataFileNames: {
       linux: "latest-linux.yml",
       macos: "latest-mac.yml",

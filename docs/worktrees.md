@@ -23,7 +23,7 @@ branch. Under the hood it's `git worktree add` plus some bookkeeping:
 - It gets its own branch so multiple threads can run in parallel.
 - It lives at
   `<BB_DATA_DIR>/plugins/environment-git-worktree/host-data/worktrees/<thread-id>/<repo-name>`
-  — for example, `~/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_abc.../myrepo`.
+  — for example, `~/.lol/plugins/environment-git-worktree/host-data/worktrees/thr_abc.../myrepo`.
 - bb removes it once no thread uses it; see [Cleanup](#cleanup).
 
 Worktrees are created by bb's built-in **Worktree** plugin, which is enabled by
