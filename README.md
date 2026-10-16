@@ -8,6 +8,11 @@
 
 # bb
 
+This fork has no GitHub Actions workflows or Dependabot schedule. Deployments,
+releases, publishing, and infrastructure changes require an explicit manual
+action. See [Repository automation](docs/repository-automation.md) for the scope
+and hosted settings to verify.
+
 [![npm version](https://img.shields.io/npm/v/bb-app.svg)](https://www.npmjs.com/package/bb-app)
 [![Join Discord](https://img.shields.io/badge/Discord-Join%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/kvBU6tJhcJ)
 

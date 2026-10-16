@@ -1,5 +1,8 @@
 # Windows CI
 
+> Upstream reference: this fork has removed all GitHub Actions workflows.
+> See [Repository automation](repository-automation.md) for the current policy.
+
 Every Windows job in `.github/workflows/ci.yml` runs on Blacksmith Windows
 Server 2025 x64 alongside the Linux checks. Main pushes run all of them; pull
 requests run the jobs that [PR selection](ci-performance.md#pr-selection)

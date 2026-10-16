@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const repoRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
 function readPackageVersion(packagePath) {
   const packageJson = JSON.parse(

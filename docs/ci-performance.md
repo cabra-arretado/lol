@@ -1,5 +1,8 @@
 # CI performance
 
+> Upstream reference: this fork has removed all GitHub Actions workflows.
+> See [Repository automation](repository-automation.md) for the current policy.
+
 The main CI workflow keeps build, lint/typecheck, two server test shards, eight app test
 shards, integration tests, three package test groups, plugin tests, three fork
 check shards, and package smokes independent. Node 24/26 compatibility smokes run on

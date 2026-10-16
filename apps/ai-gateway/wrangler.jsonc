@@ -29,7 +29,7 @@
       "simple": { "limit": 60, "period": 60 },
     },
   ],
-  "triggers": { "crons": ["17 3 * * *"] },
+  "triggers": { "crons": [] },
   "routes": [{ "pattern": "getbb.app/api/ai/*", "zone_name": "getbb.app" }],
   "env": {
     "staging": {
@@ -56,7 +56,7 @@
           "simple": { "limit": 60, "period": 60 },
         },
       ],
-      "triggers": { "crons": ["17 3 * * *"] },
+      "triggers": { "crons": [] },
       "routes": [
         {
           "pattern": "vibecodethis.site/api/ai/*",

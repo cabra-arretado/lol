@@ -1,5 +1,8 @@
 # Releasing bb-app
 
+> Upstream reference: this fork has removed all GitHub Actions workflows.
+> See [Repository automation](repository-automation.md) for the current policy.
+
 This runbook is for agents preparing and publishing the `bb-app` npm package.
 Official plugins bundle into the app during packaging and ship with this same
 release; see
@@ -126,7 +129,7 @@ If any input is unclear, ask before bumping the version.
 6. Run validation.
 
    ```bash
-   node .github/workflows/check-version-lockstep.mjs
+   node scripts/check-version-lockstep.mjs
    pnpm exec turbo run typecheck test --filter=@bb/app --filter=@bb/config --filter=@bb/server --filter=bb-app
    pnpm exec turbo run smoke:tarball --filter=bb-app --force
    git diff --check
