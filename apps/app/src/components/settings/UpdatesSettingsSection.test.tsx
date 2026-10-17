@@ -45,6 +45,18 @@ import {
   UpdatesSettingsSection,
 } from "./UpdatesSettingsSection";
 
+const capabilityOverrides = vi.hoisted(() => new Set<string>());
+
+vi.mock("@bb/domain", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@bb/domain")>();
+  return {
+    ...actual,
+    isCapabilityAllowed: (
+      id: Parameters<typeof actual.isCapabilityAllowed>[0],
+    ) => capabilityOverrides.has(id) || actual.isCapabilityAllowed(id),
+  };
+});
+
 vi.mock("@/components/ui/app-toast", () => ({
   appToast: {
     dismiss: vi.fn(),
@@ -344,6 +356,7 @@ function useWebApp(): void {
 }
 
 beforeEach(() => {
+  capabilityOverrides.add("inAppUpdate");
   hostDaemon.localDaemonHostId = null;
   vi.mocked(sdk.system.appUpdate).mockResolvedValue(
     makeAppUpdateStatus({
@@ -364,6 +377,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  capabilityOverrides.clear();
   vi.useRealTimers();
   cleanup();
   window.localStorage.clear();
@@ -374,6 +388,26 @@ afterEach(() => {
 });
 
 describe("UpdatesSettingsSection", () => {
+  it("lists only agent CLI updates when app updates are denied", () => {
+    capabilityOverrides.clear();
+    useDesktopUpdateInfoMock.mockReturnValue({
+      desktopApi: null,
+      desktopInfo: null,
+      isDesktop: false,
+    });
+    useUpdateInventoryMock.mockReturnValue(
+      makeInventory({
+        machines: [makeMachine({ host: makeHost({ id: "host_1" }) })],
+      }),
+    );
+
+    renderSection();
+
+    expect(document.querySelector('[data-bb-update-role="app"]')).toBeNull();
+    expect(screen.queryByText("Server")).toBeNull();
+    expect(screen.getByText("Provider CLIs")).toBeDefined();
+  });
+
   it("checks for updates once when the view mounts", async () => {
     useDesktopUpdateInfoMock.mockReturnValue({
       desktopApi: null,

@@ -714,6 +714,7 @@ export function registerSystemRoutes(
 
   post(routes.applyAppUpdate, async (context, body) => {
     assertAppUpdateAllowed(context);
+    assertCapabilityAllowed("inAppUpdate", deps.config.isCapabilityAllowed);
     return context.json(
       await deps.appUpdate.apply({
         confirmInterruptingThreads: body.confirmInterruptingThreads,

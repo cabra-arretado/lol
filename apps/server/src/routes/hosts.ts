@@ -142,11 +142,19 @@ export function registerHostRoutes(
 
   post(routes.create, async (context, payload) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     return context.json(await submitMachine(deps, payload), 201);
   });
 
   post(routes.createJoinCode, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     const issued = await issueHostEnrollKey(deps, {
       enrollSource: "public-multi-machine",
     });
@@ -200,6 +208,10 @@ export function registerHostRoutes(
 
   post(routes.reconnect, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     const hostId = context.req.param("id");
     const host = requireMutableHost(deps, hostId);
     if (resolvePrimaryHostId(deps) === hostId || host.phase !== "active")

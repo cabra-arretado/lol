@@ -67,6 +67,7 @@ function installHostDaemonEgressGuard(): void {
 }
 
 async function runHostDaemonEntrypoint(): Promise<void> {
+  installHostDaemonEgressGuard();
   const hostDaemonEntrypointConfig = loadHostDaemonEntrypointConfig();
   const hostDaemonStartConfig = loadHostDaemonStartConfig({});
   if (await hasMachineSuspensionMarker(hostDaemonStartConfig.dataDir)) {
@@ -99,7 +100,6 @@ if (isMainModule) {
     processName: "host-daemon",
   });
   installSocketTypeOfServiceGuard();
-  installHostDaemonEgressGuard();
   const handleMainFailure: MainFailureHandler = (error) => {
     reportStartupFailure({ diagnosticsLogsDir, error });
   };

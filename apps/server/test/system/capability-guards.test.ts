@@ -71,6 +71,33 @@ const deniedRequests: DeniedRequest[] = [
     capability: "remoteHostEnrollment",
   },
   {
+    name: "machine creation",
+    path: "/api/v1/hosts",
+    method: "POST",
+    body: { machineProviderId: "manual", inputs: null },
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "machine join code",
+    path: "/api/v1/hosts/join-codes",
+    method: "POST",
+    body: {},
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "machine reconnect command",
+    path: "/api/v1/hosts/host_missing/reconnect-commands",
+    method: "POST",
+    capability: "remoteHostEnrollment",
+  },
+  {
+    name: "in-app update",
+    path: "/api/v1/system/app-update/apply",
+    method: "POST",
+    body: { confirmInterruptingThreads: false },
+    capability: "inAppUpdate",
+  },
+  {
     name: "server export",
     path: "/api/v1/server/export",
     method: "POST",

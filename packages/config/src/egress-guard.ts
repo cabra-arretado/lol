@@ -69,7 +69,6 @@ export function isEgressHostAllowed(
 ): boolean {
   const normalized = normalizeHost(host);
   if (isLoopbackHostname(normalized)) return true;
-  if (normalized.endsWith(".localhost")) return true;
   if (LOCAL_WILDCARD_HOSTS.has(normalized)) return true;
   return allowedHosts.some((entry) =>
     entry.startsWith(".")

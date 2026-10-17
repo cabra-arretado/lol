@@ -9,6 +9,7 @@ import {
   connectAccessUrl,
   defaultSelectedRepoPaths,
   hasReadyAgent,
+  ONBOARDING_STEPS,
   parseSignInOutput,
   resolveAgentSetupState,
   resolveSignInCommand,
@@ -507,5 +508,15 @@ describe("parseSignInOutput", () => {
       userCode: null,
       acceptsPastedCode: false,
     });
+  });
+});
+
+describe("ONBOARDING_STEPS", () => {
+  it("drops the Devices step when every device capability is denied", () => {
+    expect(ONBOARDING_STEPS.map((step) => step.id)).toEqual([
+      "agent",
+      "projects",
+      "plugins",
+    ]);
   });
 });

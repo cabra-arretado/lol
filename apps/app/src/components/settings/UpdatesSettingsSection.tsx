@@ -8,7 +8,7 @@ import {
 import ReactMarkdown, { type Components } from "react-markdown";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BbDesktopInfo } from "@bb/desktop-contract";
-import type { ProviderInfo } from "@bb/domain";
+import { isCapabilityAllowed, type ProviderInfo } from "@bb/domain";
 import type {
   SystemAppUpdateResult,
   SystemAppUpdateStatus,
@@ -2147,7 +2147,9 @@ export function UpdatesSettingsSection({
     <BbAppUpdateRows
       name="Server"
       systemVersion={inventory.systemVersion}
-      appUpdate={useServerUpdate || desktopInfo === null ? appUpdate : undefined}
+      appUpdate={
+        useServerUpdate || desktopInfo === null ? appUpdate : undefined
+      }
       applyPending={applyAppUpdate.isPending}
       desktopInfo={useServerUpdate ? null : desktopInfo}
       isDesktop={!useServerUpdate && isDesktop}
@@ -2192,16 +2194,22 @@ export function UpdatesSettingsSection({
     appToast.success(`Retrying the update on ${hostIds.length} machines`);
   }
 
+  const appUpdatesAllowed =
+    isCapabilityAllowed("inAppUpdate") ||
+    isCapabilityAllowed("desktopAutoUpdate");
+
   return (
     <div className="space-y-6">
       {showChangelogPreview ? <ChangelogPreviewCard /> : null}
 
-      <BbUpdatesCard>
-        {serverAppRow}
-        {serverRunsSeparately && desktopRowNeedsAttention(desktopInfo)
-          ? desktopClientRow
-          : null}
-      </BbUpdatesCard>
+      {appUpdatesAllowed ? (
+        <BbUpdatesCard>
+          {serverAppRow}
+          {serverRunsSeparately && desktopRowNeedsAttention(desktopInfo)
+            ? desktopClientRow
+            : null}
+        </BbUpdatesCard>
+      ) : null}
 
       <ProviderCliUpdatesSection
         machines={inventory.machines}

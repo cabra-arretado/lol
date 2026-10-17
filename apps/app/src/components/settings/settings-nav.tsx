@@ -34,7 +34,6 @@ const SECTION_CAPABILITIES: Partial<
   Record<SettingsSectionId, readonly CapabilityId[]>
 > = {
   mobile: ["mobileApp"],
-  updates: ["inAppUpdate", "desktopAutoUpdate"],
 };
 
 function isSectionCapabilityAllowed(sectionId: SettingsSectionId): boolean {
@@ -83,8 +82,13 @@ export function resolveSettingsRoute({
   const projectMatch = matchPath(SETTINGS_PROJECT_ROUTE_PATH, pathname);
   const activeProjectId = projectMatch?.params.projectId ?? null;
   const sectionParam = sectionMatch?.params.section;
-  const hasUnknownSection =
-    sectionParam !== undefined && !isSettingsSectionId(sectionParam);
+  const knownSection =
+    sectionParam !== undefined &&
+    isSettingsSectionId(sectionParam) &&
+    isSectionCapabilityAllowed(sectionParam)
+      ? sectionParam
+      : null;
+  const hasUnknownSection = sectionParam !== undefined && knownSection === null;
   const activeSection: SettingsSectionId | null =
     isInstalledDetail && pluginMatch !== null
       ? "plugins"
@@ -94,9 +98,7 @@ export function resolveSettingsRoute({
           ? "projects"
           : activePluginId !== null
             ? null
-            : sectionParam !== undefined && isSettingsSectionId(sectionParam)
-              ? sectionParam
-              : "general";
+            : (knownSection ?? "general");
   return { activePluginId, activeSection, hasUnknownSection };
 }
 

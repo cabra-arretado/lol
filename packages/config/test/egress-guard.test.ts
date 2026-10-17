@@ -55,7 +55,6 @@ describe("isEgressHostAllowed", () => {
       "127.0.0.1",
       "::1",
       "[::1]",
-      "app.localhost",
       "0.0.0.0",
       "LOCALHOST.",
     ]) {
@@ -69,6 +68,7 @@ describe("isEgressHostAllowed", () => {
       "10.0.0.5",
       "getbb.app",
       "localhost.attacker.example",
+      "app.localhost",
     ]) {
       expect(isEgressHostAllowed(host, [])).toBe(false);
     }

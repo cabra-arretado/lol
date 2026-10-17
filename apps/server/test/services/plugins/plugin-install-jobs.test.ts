@@ -258,4 +258,16 @@ describe("plugin install routes", () => {
       await expect(list.json()).resolves.toEqual({ jobs: [] });
     });
   });
+
+  it("answers a malformed install source with an install failure, not a server error", async () => {
+    await withTestHarness(async (h) => {
+      const response = await h.app.request(`${BASE}/api/v1/plugins/install`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "npm:Bad Name" }),
+      });
+
+      expect(response.status).toBe(422);
+    });
+  });
 });

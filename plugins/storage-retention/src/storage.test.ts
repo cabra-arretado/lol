@@ -1224,13 +1224,13 @@ it("recovers developer checkout paths from launch records, old runtime records, 
   const rootPath = path.join(homeDir, ".lol-dev");
   const managed = path.join(
     homeDir,
-    ".bb",
+    ".lol",
     "plugins",
     "environment-git-worktree",
     "host-data",
     "worktrees",
     "thr_gone-1",
-    "bb",
+    "lol",
   );
   const known = path.join(homeDir, "Mixed Case", "bb");
   const existing = path.join(homeDir, "checkout");

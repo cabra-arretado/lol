@@ -54,6 +54,16 @@ import {
   pluginUpdateCheckRequestSchema,
 } from "@bb/server-contract";
 
+function pluginSourceKind(
+  source: string,
+): ReturnType<typeof parsePluginSource>["kind"] | null {
+  try {
+    return parsePluginSource(source).kind;
+  } catch {
+    return null;
+  }
+}
+
 interface PluginRoutesDeps {
   config: Pick<
     ServerRuntimeConfig,
@@ -742,7 +752,7 @@ export function registerPluginRoutes(
       );
     }
     const { source, selection } = parsed.data;
-    const sourceKind = parsePluginSource(source).kind;
+    const sourceKind = pluginSourceKind(source);
     if (sourceKind === "git" || sourceKind === "npm") {
       assertCapabilityAllowed(
         "thirdPartyPluginInstall",

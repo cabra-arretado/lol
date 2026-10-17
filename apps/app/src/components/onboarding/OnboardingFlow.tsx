@@ -812,7 +812,11 @@ function PluginsStepContainer({
       step="plugins"
       title="Make bb yours"
       description="Most of bb is plugins. These ones are off until you want them, and you can change your mind in Plugins."
-      primaryLabel="Continue"
+      primaryLabel={
+        STEP_ORDER[STEP_ORDER.length - 1] === "plugins"
+          ? "Start using bb"
+          : "Continue"
+      }
       secondaryLabel="Skip"
       onPrimary={onContinue}
       onSecondary={onSkip}
