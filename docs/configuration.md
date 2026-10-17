@@ -52,9 +52,15 @@ below describes one of these features, the personal edition behaves as follows:
   `getbb.app`. While it is on, the server allows connections to the
   marketplace host (`getbb.app` for the default `BB_MARKETPLACE_URL`) and
   contacts it only when you refresh or install; the periodic refresh never
-  runs. Installing a `bb-community` plugin shows its resolved source for
-  confirmation, then fetches it from there. That fetch is a `git` or package
-  manager child process, which the egress guard does not cover.
+  runs. Refresh, install plans and installs for a marketplace entry return
+  `403 capability_disabled` while it is off, and refreshing every marketplace
+  then refreshes only `bb-official`. Installing a `bb-community` plugin shows
+  its resolved source for confirmation, then fetches it from there. `git:`
+  entries (all current `bb-community` entries) are cloned by a `git` child
+  process, which the egress guard does not cover, so they work with access on.
+  `npm:` entries resolve their registry in-process and fail with a blocked
+  outbound connection until the registry host is added to
+  `BB_EGRESS_ALLOWED_HOSTS`.
 - Adding a marketplace, installing plugins from `npm:` or `git:` sources, and
   the periodic plugin update check stay denied with
   `403 capability_disabled`.

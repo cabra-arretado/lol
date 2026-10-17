@@ -1,4 +1,8 @@
-import { assertCapabilityAllowed, type CapabilityCheck } from "@bb/domain";
+import {
+  assertCapabilityAllowed,
+  CapabilityDeniedError,
+  type CapabilityCheck,
+} from "@bb/domain";
 import { BUNDLED_MARKETPLACE_NAME } from "../services/plugin-catalog/bundled-marketplace-paths.js";
 import {
   getMarketplaceAccess,
@@ -82,6 +86,15 @@ export function registerPluginCatalogRoutes(
         { error: "expected ?entryId=<id>[&marketplace=<name>]" },
         422,
       );
+    }
+    try {
+      const entry = catalog.describeEntry(selector);
+      if (entry.marketplace !== BUNDLED_MARKETPLACE_NAME) {
+        assertCapabilityAllowed("remoteMarketplace", isAllowed);
+      }
+    } catch (error) {
+      if (error instanceof CapabilityDeniedError) throw error;
+      return context.json({ error: errorMessage(error) }, 422);
     }
     try {
       return context.json({ plan: await catalog.installPlan(selector) });
@@ -174,9 +187,19 @@ export function registerPluginCatalogRoutes(
     if (!body.success) {
       return context.json({ error: 'expected { "name"?: string }' }, 422);
     }
+    if (
+      body.data.name !== undefined &&
+      body.data.name !== BUNDLED_MARKETPLACE_NAME
+    ) {
+      assertCapabilityAllowed("remoteMarketplace", isAllowed);
+    }
+    const target =
+      body.data.name === undefined && !isAllowed("remoteMarketplace")
+        ? { name: BUNDLED_MARKETPLACE_NAME }
+        : body.data;
     try {
       return context.json({
-        results: await catalog.refreshMarketplaces(body.data),
+        results: await catalog.refreshMarketplaces(target),
       });
     } catch (error) {
       return context.json({ error: errorMessage(error) }, 422);

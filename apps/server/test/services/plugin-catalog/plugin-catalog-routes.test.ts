@@ -2,9 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type DbConnection } from "@bb/db";
+import { type CapabilityCheck } from "@bb/domain";
 import { createMigratedConnection } from "@bb/db/testing";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createServerErrorHandler } from "../../../src/errors.js";
 import { registerPluginCatalogRoutes } from "../../../src/routes/plugin-catalog.js";
 import { createPluginInstallJobs } from "../../../src/services/plugins/plugin-install-jobs.js";
 import { createPluginCatalogService } from "../../../src/services/plugin-catalog/plugin-catalog-service.js";
@@ -35,6 +37,7 @@ describe("plugin catalog routes", () => {
 
   function catalogApp(
     fetchImpl?: Parameters<typeof createPluginCatalogService>[0]["fetch"],
+    isAllowed: CapabilityCheck = () => true,
   ) {
     const catalog = createPluginCatalogService({
       db,
@@ -56,11 +59,19 @@ describe("plugin catalog routes", () => {
       ...(fetchImpl === undefined ? {} : { fetch: fetchImpl }),
     });
     const app = new Hono();
+    app.onError(
+      createServerErrorHandler({
+        debug: () => {},
+        error: () => {},
+        info: () => {},
+        warn: () => {},
+      }),
+    );
     registerPluginCatalogRoutes(
       app,
       catalog,
       createPluginInstallJobs({ notifyChanged: () => {} }),
-      () => true,
+      isAllowed,
       { db, notifyChanged: () => {} },
     );
     return { app, catalog };
@@ -112,6 +123,70 @@ describe("plugin catalog routes", () => {
       body: JSON.stringify({ entryId: "memory", version: "0.2.0" }),
     });
     expect(versionOverride.status).toBe(422);
+  });
+
+  describe("marketplace access", () => {
+    const denyMarketplace: CapabilityCheck = (id) => id !== "remoteMarketplace";
+    const json = { "content-type": "application/json" };
+
+    it("refuses refresh, install plan and install for a marketplace entry while denied", async () => {
+      const { app } = catalogApp(undefined, denyMarketplace);
+      for (const response of [
+        await app.request("/marketplaces/refresh", {
+          method: "POST",
+          headers: json,
+          body: JSON.stringify({ name: "bb-community" }),
+        }),
+        await app.request(
+          "/plugin-catalog/install-plan?entryId=prompt-shaper&marketplace=bb-community",
+        ),
+        await app.request("/plugin-catalog/install", {
+          method: "POST",
+          headers: json,
+          body: JSON.stringify({
+            entryId: "prompt-shaper",
+            marketplace: "bb-community",
+          }),
+        }),
+      ]) {
+        expect(response.status).toBe(403);
+      }
+    });
+
+    it("refreshes only the bundled catalog when refreshing all while denied", async () => {
+      const { app } = catalogApp(undefined, denyMarketplace);
+      const response = await app.request("/marketplaces/refresh", {
+        method: "POST",
+        headers: json,
+        body: "{}",
+      });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        results: Array<{ name: string; ok: boolean }>;
+      };
+      expect(body.results).toEqual([
+        expect.objectContaining({ name: "bb-official", ok: true }),
+      ]);
+    });
+
+    it("plans and hands a marketplace install to the plugin service once allowed", async () => {
+      const { app } = catalogApp();
+      const plan = await app.request(
+        "/plugin-catalog/install-plan?entryId=prompt-shaper&marketplace=bb-community",
+      );
+      expect(plan.status).toBe(200);
+      const install = await app.request("/plugin-catalog/install", {
+        method: "POST",
+        headers: json,
+        body: JSON.stringify({
+          entryId: "prompt-shaper",
+          marketplace: "bb-community",
+        }),
+      });
+      await expect(install.json()).resolves.toMatchObject({
+        error: expect.stringContaining("unexpected catalog install"),
+      });
+    });
   });
 
   it("identifies background installs with the same entry ID as catalog search", async () => {
