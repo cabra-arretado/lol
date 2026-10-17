@@ -1,5 +1,6 @@
 import { type RefObject, useLayoutEffect } from "react";
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
+import { isCapabilityAllowed } from "@bb/domain";
 import {
   usePluginSlots,
   type PluginSidebarFooterItemSlot,
@@ -48,6 +49,14 @@ export type FooterItem = { key: string; label: string; icon: string } & (
   | { kind: "builtin"; id: BuiltinFooterId }
   | { kind: "plugin"; slot: PluginSidebarFooterItemSlot }
 );
+const MOBILE_FOOTER_ITEM: FooterItem = {
+  kind: "builtin",
+  id: "mobile",
+  key: "builtin:mobile",
+  label: "Mobile apps",
+  icon: "Smartphone",
+};
+
 export function footerPreferenceKey(item: {
   pluginId: string;
   id: string;
@@ -61,13 +70,7 @@ export function useSidebarFooterPreferences() {
   const [hidden, setHidden] = useAtom(sidebarFooterHiddenAtom);
   const capacity = useAtomValue(sidebarFooterCapacityAtom);
   const items: FooterItem[] = [
-    {
-      kind: "builtin",
-      id: "mobile",
-      key: "builtin:mobile",
-      label: "Mobile apps",
-      icon: "Smartphone",
-    },
+    ...(isCapabilityAllowed("mobileApp") ? [MOBILE_FOOTER_ITEM] : []),
     ...sidebarFooterItems.map((slot): FooterItem => ({
       kind: "plugin",
       key: footerPreferenceKey(slot),

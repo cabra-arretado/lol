@@ -22,7 +22,7 @@ import type {
 } from "@get-bb/plugin-sdk";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@bb/shared-ui/tooltip";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarMenu, SidebarProvider } from "@/components/ui/sidebar.js";
 import {
   resetPluginSlotStoreForTest,
@@ -44,6 +44,22 @@ import {
   definePluginApp,
 } from "@/lib/plugin-app-definition";
 import { LocationProbe } from "@/test/location-probe";
+
+const capabilityOverrides = vi.hoisted(() => new Set<string>());
+
+vi.mock("@bb/domain", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@bb/domain")>();
+  return {
+    ...actual,
+    isCapabilityAllowed: (
+      id: Parameters<typeof actual.isCapabilityAllowed>[0],
+    ) => capabilityOverrides.has(id) || actual.isCapabilityAllowed(id),
+  };
+});
+
+beforeEach(() => {
+  capabilityOverrides.add("mobileApp");
+});
 
 function registrationSet(
   overrides: Partial<PluginRegistrationSet>,
@@ -110,6 +126,7 @@ function UsageDisclosure({ dismiss }: { dismiss(): void }) {
 }
 
 afterEach(() => {
+  capabilityOverrides.clear();
   cleanup();
   resetPluginSlotStoreForTest();
   resetPluginLogoStoreForTest();
@@ -117,6 +134,20 @@ afterEach(() => {
 });
 
 describe("PluginSidebarFooterItems", () => {
+  it("leaves Mobile apps out of the footer while the mobile app is denied", () => {
+    capabilityOverrides.clear();
+    const store = createStore();
+    store.set(sidebarFooterCapacityAtom, 5);
+    renderWithProviders(<SidebarFooterCustomize onDone={() => {}} />, store);
+
+    expect(
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[data-footer-icon]"),
+        (element) => element.dataset.footerIcon,
+      ),
+    ).toEqual(["builtin:report-bug"]);
+  });
+
   it("fills the footer to its measured capacity and keeps overflow in More when an icon is removed", () => {
     setPluginSlotRegistrations(
       "example",
