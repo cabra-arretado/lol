@@ -12,7 +12,8 @@ const PROJECT_COLOR_HUES: Record<ProjectColor, number> = {
 };
 
 export function projectColorCss(color: ProjectColor): string {
-  return `oklch(0.68 0.17 ${PROJECT_COLOR_HUES[color]})`;
+  const hue = PROJECT_COLOR_HUES[color];
+  return `light-dark(oklch(0.58 0.17 ${hue}), oklch(0.68 0.17 ${hue}))`;
 }
 
 export function projectColorLabel(color: ProjectColor): string {

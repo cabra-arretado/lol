@@ -2113,6 +2113,11 @@ Docs: `frontend-renderer-slots.md`, `testing.md`.
 reads it from the same `experimental_useSidebarThreads` projection to draw the
 project's color dot.
 
+The field is optional only for backward compatibility with plugin hosts that
+predate it; stabilization makes it required. It is a property on the existing
+sidebar-threads surface, so `plugins/plugin-api-docs/src/surfaces.ts` needs no
+new entry.
+
 **Audit before stabilizing.** Confirm the fixed palette (`PROJECT_COLORS` in
 `@bb/domain`) is the right contract for plugins, then rename project-wide and
 remove this entry.

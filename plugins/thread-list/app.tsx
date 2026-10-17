@@ -8,6 +8,7 @@ import { moveThreadAction } from "./app/rows/moveThreadAction.js";
 
 function ThreadList({
   activeThreadId,
+  activeProjectId,
   isCompactViewport,
   onNavigate,
 }: PluginThreadListProps) {
@@ -18,6 +19,7 @@ function ThreadList({
         <PreferencesSync />
         <ProjectList
           activeThreadId={activeThreadId}
+          activeProjectId={activeProjectId}
           onProjectSelect={onNavigate}
         />
       </TooltipProvider>

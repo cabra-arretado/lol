@@ -63,6 +63,7 @@ import {
 import type { ProjectThreadListState } from "./ProjectRow.js";
 import { buildMachineThreadGroups } from "../model/machine-thread-groups.js";
 import { buildPinnedSidebarState } from "../model/pinned-sidebar-threads.js";
+import { resolveCurrentProjectId } from "../model/current-project.js";
 import {
   CHRONOLOGICAL_CONTAINER_ID,
   compareByCreatedAtDescending,
@@ -130,6 +131,7 @@ import {
 
 export interface ProjectListProps {
   activeThreadId: string | null;
+  activeProjectId?: string | null;
   onProjectSelect?: () => void;
 }
 
@@ -497,6 +499,7 @@ function useGroupedModeThreadDnd({
 
 interface ProjectModeSectionsProps
   extends BuiltInSectionRenderState, GroupedModePinnedProps {
+  activeProjectId: string | null;
   collapsedEnvironmentIds: Set<string>;
   collapsedThreadIds: Set<string>;
   compareThreads: ThreadComparator;
@@ -515,6 +518,7 @@ interface ProjectModeSectionsProps
 }
 
 function ProjectModeSections({
+  activeProjectId,
   collapsedEnvironmentIds,
   collapsedSectionIds,
   collapsedThreadIds,
@@ -574,13 +578,11 @@ function ProjectModeSections({
     }
     return grouped;
   }, [effectivePinnedThreadIds, threads]);
-  const selectedProjectId = useMemo(() => {
-    if (selectedThreadId === undefined) return null;
-    const threadsById = new Map(threads.map((thread) => [thread.id, thread]));
-    const selectedThread = threadsById.get(selectedThreadId);
-    if (selectedThread === undefined) return null;
-    return createSidebarProjectIdResolver(threadsById)(selectedThread);
-  }, [selectedThreadId, threads]);
+  const selectedProjectId = useMemo(
+    () =>
+      resolveCurrentProjectId({ activeProjectId, selectedThreadId, threads }),
+    [activeProjectId, selectedThreadId, threads],
+  );
   const projectRows = useMemo<ProjectListRowModel[]>(
     () =>
       projects
@@ -1310,6 +1312,7 @@ function toThreadListStatus(
 
 function ProjectListComponent({
   activeThreadId,
+  activeProjectId = null,
   onProjectSelect,
 }: ProjectListProps) {
   const sdk = useSdk();
@@ -1773,6 +1776,7 @@ function ProjectListComponent({
           )}
           renderProject={() => (
             <ProjectModeSections
+              activeProjectId={activeProjectId}
               personalProjectId={personalProjectId}
               projects={projects}
               threads={threads}
