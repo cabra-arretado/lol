@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { generateBrandIcons } from "./generate-brand-icons.mjs";
+import { brandAssetsEqual } from "./brand-assets-equal.mjs";
 
 const appDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const publicDir = join(appDir, "public");
@@ -144,13 +146,14 @@ async function generatedMonochromePng(sourceFile) {
 }
 
 async function writeOrCheck(fileName, content) {
-  const filePath = join(publicDir, fileName);
+  const filePath = resolve(publicDir, fileName);
   const existing = await readFile(filePath).catch((error) => {
     if (error.code === "ENOENT") return null;
     throw error;
   });
   if (existing?.equals(content)) return;
   if (checkOnly) {
+    if (await brandAssetsEqual(fileName, existing, content)) return;
     mismatches.push(fileName);
     return;
   }
@@ -163,6 +166,8 @@ async function writeOrCheck(fileName, content) {
     await rm(temporaryPath, { force: true });
   }
 }
+
+await generateBrandIcons(publicDir, writeOrCheck);
 
 const baseManifest = JSON.parse(
   await readFile(join(publicDir, "manifest.webmanifest"), "utf8"),

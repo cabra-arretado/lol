@@ -11,16 +11,25 @@ const execFileAsync = promisify(execFile);
 it("checks generated icons during generation and rejects stale assets", async () => {
   const appDir = resolve(import.meta.dirname, "..");
   const fixture = await mkdtemp(join(tmpdir(), "bb-pwa-icons-"));
+  const fixtureAppDir = join(fixture, "apps/app");
   try {
-    await mkdir(join(fixture, "scripts"));
-    await cp(join(appDir, "public"), join(fixture, "public"), {
+    await mkdir(join(fixture, "assets"));
+    await mkdir(join(fixture, "apps/desktop/assets"), { recursive: true });
+    await mkdir(fixtureAppDir, { recursive: true });
+    await cp(join(appDir, "public"), join(fixtureAppDir, "public"), {
       recursive: true,
     });
-    const generator = join(fixture, "scripts/generate-pwa-icons.mjs");
-    await cp(join(appDir, "scripts/generate-pwa-icons.mjs"), generator);
+    await cp(join(appDir, "scripts"), join(fixtureAppDir, "scripts"), {
+      recursive: true,
+    });
+    await cp(
+      resolve(appDir, "../../assets/bb-logo.svg"),
+      join(fixture, "assets/bb-logo.svg"),
+    );
+    const generator = join(fixtureAppDir, "scripts/generate-pwa-icons.mjs");
     await symlink(
       join(appDir, "node_modules"),
-      join(fixture, "node_modules"),
+      join(fixtureAppDir, "node_modules"),
       process.platform === "win32" ? "junction" : "dir",
     );
     const preload = join(fixture, "pause-write.mjs");
@@ -76,7 +85,7 @@ syncBuiltinESMExports();
     }
 
     await writeFile(
-      join(fixture, "public/icon-monochrome-192.png"),
+      join(fixtureAppDir, "public/icon-monochrome-192.png"),
       "stale asset",
     );
     await expect(
