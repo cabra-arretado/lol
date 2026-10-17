@@ -129,6 +129,30 @@ export function registerMarketplaceCommands(
     );
 
   marketplace
+    .command("access [state]")
+    .description(
+      "Show or change whether bb may contact the plugin marketplace (on or off; off by default). When on, the network is used only by an explicit marketplace refresh or an approved marketplace plugin install",
+    )
+    .option("--json", "Output JSON")
+    .action(
+      action(async (state: string | undefined, opts: JsonOutputOptions) => {
+        if (state !== undefined && state !== "on" && state !== "off") {
+          throw new Error('expected "on" or "off"');
+        }
+        const area = createCliBbSdk(getUrl()).plugins.marketplaces;
+        const result =
+          state === undefined
+            ? await area.access()
+            : await area.setAccess(state === "on");
+        if (opts.json) {
+          outputJson(opts, result);
+          return;
+        }
+        console.log(`Marketplace access is ${result.enabled ? "on" : "off"}.`);
+      }),
+    );
+
+  marketplace
     .command("refresh [name]")
     .description(
       "Re-read one marketplace catalog, or every one of them. Discovery metadata and icons only: a refresh never installs, updates, or runs plugin code",

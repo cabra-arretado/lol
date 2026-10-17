@@ -31,7 +31,7 @@ const deniedRequests: DeniedRequest[] = [
     path: "/api/v1/marketplaces",
     method: "POST",
     body: { source: "https://example.test/marketplace.json" },
-    capability: "remoteMarketplace",
+    capability: "thirdPartyPluginInstall",
   },
   {
     name: "skills registry search",

@@ -30,7 +30,8 @@ takes precedence. In-place progress updates require a stdout TTY.
 ## Personal edition
 
 This fork ships a fixed capability policy (`packages/domain/src/capability-policy.ts`)
-that denies every network-facing capability. `bb capabilities`,
+that denies every network-facing capability except one opt-in capability
+(`remoteMarketplace`, state `optIn`). `bb capabilities`,
 `sdk.system.capabilities()`, and `GET /api/v1/system/capabilities` list it. No
 setting or environment variable re-enables a denied capability. Where a section
 below describes one of these features, the personal edition behaves as follows:
@@ -39,12 +40,30 @@ below describes one of these features, the personal edition behaves as follows:
 - The launcher never runs the in-app update shim, the server's npm version
   check fails closed, and applying an app update returns
   `403 capability_disabled`. Settings → Updates only lists agent CLI updates.
-- The remote marketplace catalog, its stats and icons are never fetched; the
-  bundled `bb-official` catalog still installs Docs, Tasks, Memory and other
-  bundled plugins. Adding a marketplace returns `403 capability_disabled`.
-- Installing plugins from `npm:` or `git:` sources, or from any marketplace
-  other than `bb-official`, returns `403 capability_disabled`; the periodic
-  plugin update check does not run.
+- The bundled `bb-official` catalog works offline: Settings → Plugins → Browse
+  plugins lists and installs Memory, GitHub and the other bundled plugins with
+  no network. Docs and Tasks are installed on first start; removing either
+  keeps it removed.
+- Marketplace access is a user setting, off by default (Settings → Plugin
+  marketplaces → "Allow contacting the plugin marketplace",
+  `bb marketplace access on|off`, `PUT /api/v1/marketplaces/access`). While it
+  is off, the `bb-community` catalog is hidden from Browse plugins, Refresh
+  fails with `403 capability_disabled`, and the egress guard still blocks
+  `getbb.app`. While it is on, the server allows connections to the
+  marketplace host (`getbb.app` for the default `BB_MARKETPLACE_URL`) and
+  contacts it only when you refresh or install; the periodic refresh never
+  runs. Refresh, install plans and installs for a marketplace entry return
+  `403 capability_disabled` while it is off, and refreshing every marketplace
+  then refreshes only `bb-official`. Installing a `bb-community` plugin shows
+  its resolved source for confirmation, then fetches it from there. `git:`
+  entries (all current `bb-community` entries) are cloned by a `git` child
+  process, which the egress guard does not cover, so they work with access on.
+  `npm:` entries resolve their registry in-process and fail with a blocked
+  outbound connection until the registry host is added to
+  `BB_EGRESS_ALLOWED_HOSTS`.
+- Adding a marketplace, installing plugins from `npm:` or `git:` sources, and
+  the periodic plugin update check stay denied with
+  `403 capability_disabled`.
 - The skills.sh registry routes and the mobile app release route return
   `403 capability_disabled`.
 - The server and Vite dev server only listen on loopback (see

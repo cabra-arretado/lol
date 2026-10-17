@@ -21,6 +21,8 @@ import {
   setAppSettings,
 } from "@bb/db";
 import { initDb } from "./db.js";
+import { createCapabilityCheck } from "./services/capability-check.js";
+import { curatedMarketplaceHosts } from "./services/plugin-catalog/marketplace-manifest.js";
 import { createApp } from "./server.js";
 import { PendingInteractionLifecycle } from "./services/interactions/pending-interactions.js";
 import { createMachineAuthService } from "./services/machine-auth.js";
@@ -122,8 +124,10 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     component: "server",
     dataDir: serverConfig.BB_DATA_DIR,
   });
+  const configuredEgressHosts = loadEgressAllowedHosts();
+  let marketplaceEgressHosts: () => string[] = () => [];
   installEgressGuard({
-    allowedHosts: loadEgressAllowedHosts(),
+    allowedHosts: () => [...configuredEgressHosts, ...marketplaceEgressHosts()],
     onBlocked: (attempt) => {
       logger.warn(attempt, "Blocked outbound connection");
     },
@@ -183,9 +187,14 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   const isProduction = process.env.NODE_ENV === "production";
   const staticDir =
     isProduction && existsSync(appDistDir) ? appDistDir : undefined;
+  const capabilityCheck = createCapabilityCheck(db);
+  marketplaceEgressHosts = () =>
+    capabilityCheck("remoteMarketplace")
+      ? curatedMarketplaceHosts(serverConfig.BB_MARKETPLACE_URL)
+      : [];
   const runtimeConfig: ServerRuntimeConfig = {
     appVersion: serverConfig.BB_APP_VERSION,
-    isCapabilityAllowed,
+    isCapabilityAllowed: capabilityCheck,
     builtinSkillsRootPath: resolveBuiltinSkillsRootPath(),
     marketplaceUrl: serverConfig.BB_MARKETPLACE_URL,
     customModels: [],

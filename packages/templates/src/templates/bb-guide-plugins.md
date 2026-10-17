@@ -104,6 +104,10 @@ under `<bb-data-dir>/plugins/<id>/` (SQLite database, secrets, logs).
                                  repository instead of its root
   bb marketplace list            Name, source, entry count, and last refresh
                                  (--json for raw rows)
+  bb marketplace access [on|off] Show or set whether bb may contact the plugin
+                                 marketplace (default off). When on, only an
+                                 explicit refresh or an approved marketplace
+                                 plugin install uses the network
   bb marketplace refresh [name]  Re-read one catalog or all of them. Never
                                  installs, updates, or runs plugin code; a
                                  failed refresh keeps the last valid catalog

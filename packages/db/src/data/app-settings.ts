@@ -23,6 +23,7 @@ const appSettingsKeys = appSettingsKeySchema.options;
 const KEYBINDING_OVERRIDES_KEY = "keybindingOverrides";
 const AI_SERVICE_SELECTIONS_KEY = "aiServiceSelections";
 const PLUGIN_SAFE_MODE_KEY = "pluginSafeMode";
+const MARKETPLACE_ACCESS_KEY = "marketplaceAccess";
 const DISABLED_PROVIDER_IDS_KEY = "disabledProviderIds";
 const LEGACY_DIAGNOSTIC_EVENTS_KEY = "showUnhandledProviderEvents";
 
@@ -167,6 +168,19 @@ export function getPluginSafeMode(db: DbConnection): boolean {
 
 export function setPluginSafeMode(db: DbConnection, enabled: boolean): void {
   writeValue(db, PLUGIN_SAFE_MODE_KEY, enabled, Date.now());
+}
+
+export function getMarketplaceAccess(db: DbConnection): boolean {
+  const row = db
+    .select({ value: appSettingsValues.value })
+    .from(appSettingsValues)
+    .where(eq(appSettingsValues.key, MARKETPLACE_ACCESS_KEY))
+    .get();
+  return row !== undefined && parseStoredValue(row.value) === true;
+}
+
+export function setMarketplaceAccess(db: DbConnection, enabled: boolean): void {
+  writeValue(db, MARKETPLACE_ACCESS_KEY, enabled, Date.now());
 }
 
 export function getDisabledProviderIds(db: DbConnection): string[] {

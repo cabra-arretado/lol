@@ -9,7 +9,7 @@ export interface EgressAttempt {
 }
 
 export interface InstallEgressGuardArgs {
-  allowedHosts: readonly string[];
+  allowedHosts: readonly string[] | (() => readonly string[]);
   onBlocked: (attempt: EgressAttempt) => void;
 }
 
@@ -92,13 +92,17 @@ export function loadEgressAllowedHosts(
 export function installEgressGuard(args: InstallEgressGuardArgs): () => void {
   const prototype = net.Socket.prototype;
   const originalConnect = prototype.connect;
-  const allowedHosts = args.allowedHosts.map(normalizeHost);
+  const configuredHosts = args.allowedHosts;
+  const readAllowedHosts =
+    typeof configuredHosts === "function"
+      ? configuredHosts
+      : () => configuredHosts;
 
   function guardedConnect(this: net.Socket, ...connectArgs: unknown[]) {
     const target = connectTarget(connectArgs);
     if (
       target.kind === "ipc" ||
-      isEgressHostAllowed(target.host, allowedHosts)
+      isEgressHostAllowed(target.host, readAllowedHosts().map(normalizeHost))
     ) {
       return Reflect.apply(originalConnect, this, connectArgs);
     }

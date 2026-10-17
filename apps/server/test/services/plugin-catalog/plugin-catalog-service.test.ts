@@ -31,9 +31,7 @@ import {
 import { BUNDLED_CURATED_MARKETPLACE } from "../../../src/services/plugin-catalog/curated-marketplace.js";
 import { loadBundledMarketplace } from "../../../src/services/plugin-catalog/bundled-marketplace.js";
 import {
-  BUILTIN_PLUGINS,
   BUNDLED_PLUGINS,
-  OFFICIAL_PLUGINS,
   listBundledPluginRegistrations,
 } from "../../../src/services/plugins/builtin-registry.js";
 
@@ -180,8 +178,12 @@ describe("plugin catalog service", () => {
     const catalog = service();
     expect(catalog.status()).toEqual({
       pluginCount: BUNDLED_PLUGINS.length + SEED_ENTRY_COUNT,
-      includedPluginCount: BUILTIN_PLUGINS.length,
-      optionalPluginCount: OFFICIAL_PLUGINS.length + SEED_ENTRY_COUNT,
+      includedPluginCount: BUNDLED_PLUGINS.filter(
+        (plugin) => plugin.autoInstall,
+      ).length,
+      optionalPluginCount:
+        BUNDLED_PLUGINS.filter((plugin) => !plugin.autoInstall).length +
+        SEED_ENTRY_COUNT,
     });
 
     const results = await catalog.search("");
@@ -216,7 +218,7 @@ describe("plugin catalog service", () => {
       publisherLabel: "BB Official",
       author: { name: "BB", url: null },
       installed: false,
-      installedByDefault: false,
+      installedByDefault: true,
       compatible: true,
     });
     expect(

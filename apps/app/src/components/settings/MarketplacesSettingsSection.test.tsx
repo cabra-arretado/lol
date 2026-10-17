@@ -37,12 +37,21 @@ interface RecordedRequest {
 function stubFetch(
   marketplaces: unknown[],
   addResponse = Response.json({ ok: true, marketplace: ACME }),
+  accessEnabled = false,
 ): RecordedRequest[] {
   const requests: RecordedRequest[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       requests.push({ url, init });
+      if (url === "/api/v1/marketplaces/access") {
+        return Response.json({
+          enabled:
+            init?.method === "PUT"
+              ? JSON.parse(String(init.body)).enabled
+              : accessEnabled,
+        });
+      }
       if (url === "/api/v1/marketplaces" && init?.method !== "POST") {
         return Response.json({ marketplaces });
       }
@@ -77,6 +86,35 @@ describe("MarketplacesSettingsSection", () => {
     expect(await screen.findByText("Plugin marketplaces")).toBeTruthy();
     expect(screen.queryByLabelText("Marketplace source")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
+  });
+
+  it("keeps marketplace access off by default and blocks Refresh until it is on", async () => {
+    const requests = stubFetch([OFFICIAL]);
+    const { wrapper } = createQueryClientTestHarness();
+    render(<MarketplacesSettingsSection />, { wrapper });
+
+    const toggle = await screen.findByRole("switch", {
+      name: "Allow contacting the plugin marketplace",
+    });
+    await vi.waitFor(() => expect(toggle.hasAttribute("disabled")).toBe(false));
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    expect(
+      screen
+        .getByRole("button", { name: "Refresh BB Community" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+
+    fireEvent.click(toggle);
+    await vi.waitFor(() => {
+      const update = requests.find(
+        (request) =>
+          request.url === "/api/v1/marketplaces/access" &&
+          request.init?.method === "PUT",
+      );
+      expect(update && JSON.parse(String(update.init?.body))).toEqual({
+        enabled: true,
+      });
+    });
   });
 
   it("shows the subdirectory a git marketplace is read from", async () => {

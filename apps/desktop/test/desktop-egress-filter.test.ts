@@ -14,7 +14,7 @@ describe("isDesktopRequestAllowed", () => {
 
   it.each([
     "https://getbb.app/dashboard",
-    "https://github.com/get-bb/bb/releases/download/desktop-latest/latest-mac.yml",
+    "https://github.com/cabra-arretado/lol/releases/download/desktop-latest/latest-mac.yml",
     "https://avatars.githubusercontent.com/u/1",
     "http://192.168.1.20:38986/",
     "http://localhost.attacker.example/",

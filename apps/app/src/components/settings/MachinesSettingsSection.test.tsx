@@ -710,7 +710,7 @@ describe("MachinesSettingsSection", () => {
 
     await screen.findByText("desk");
     expect(
-      screen.getByText(/awake and online to run the server\.$/u),
+      screen.getByText(/Machines listed here run agents for that server\.$/u),
     ).toBeDefined();
     expect(
       screen.queryByText(/To change which machine runs the server/u),

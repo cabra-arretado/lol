@@ -174,6 +174,7 @@ export function createPluginCatalogService(deps: {
   bundledPlugins?: readonly BundledPluginRegistration[];
   fetch?: MarketplaceFetch;
   notifyCatalogChanged?: () => void;
+  remoteMarketplaceAllowed?: () => boolean;
   warn?: (message: string) => void;
 }): PluginCatalogService {
   const bundledPlugins =
@@ -1136,8 +1137,11 @@ export function createPluginCatalogService(deps: {
             catalogEntryKey(row.catalogMarketplaceName, row.catalogEntryId),
           ),
       );
+      const remoteAllowed = deps.remoteMarketplaceAllowed?.() ?? true;
       const catalogEntryPromises = orderedMarketplaces().flatMap(
         (row, index) => {
+          if (row.name !== BUNDLED_MARKETPLACE_NAME && !remoteAllowed)
+            return [];
           const catalog = isReservedMarketplace(row.name)
             ? (collectionIndex.catalogsByMarketplace.get(row.name) ?? null)
             : catalogOf(row);

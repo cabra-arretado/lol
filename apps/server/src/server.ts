@@ -905,6 +905,8 @@ export function createApp(
     ),
     dataDir: deps.config.dataDir,
     plugins: pluginService,
+    remoteMarketplaceAllowed: () =>
+      deps.config.isCapabilityAllowed("remoteMarketplace"),
     notifyCatalogChanged: () => deps.hub.notifySystem(["plugins-changed"]),
     warn: (message) => deps.logger.warn(message),
   });
@@ -933,6 +935,10 @@ export function createApp(
     pluginCatalogService,
     pluginInstallJobs,
     deps.config.isCapabilityAllowed,
+    {
+      db: deps.db,
+      notifyChanged: () => deps.hub.notifySystem(["plugins-changed"]),
+    },
   );
   registerPluginRoutes(
     publicApi,
