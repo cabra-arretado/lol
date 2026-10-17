@@ -358,6 +358,17 @@ export function curatedMarketplaceManifestUrls(configuredUrl: string): {
   return { primary: url.toString(), fallback: null };
 }
 
+export function curatedMarketplaceHosts(configuredUrl: string): string[] {
+  const { primary, fallback } = curatedMarketplaceManifestUrls(configuredUrl);
+  return [
+    ...new Set(
+      [primary, fallback]
+        .filter((url) => url !== null)
+        .map((url) => new URL(url).hostname),
+    ),
+  ];
+}
+
 export function parseMarketplaceManifest(
   input: unknown,
   location: string,

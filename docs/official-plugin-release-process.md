@@ -9,7 +9,9 @@ official plugins from that local bundled copy; no network is involved.
 Every bundled plugin lives in `plugins/<name>`. The directory does not record
 the install policy. `autoInstall` in the registry does: `BUILTIN_PLUGINS`
 entries reconcile automatically, and `OFFICIAL_PLUGINS` entries stay store-only
-until a user installs them.
+until a user installs them. The personal edition also installs `docs` and
+`tasks` by default (`PERSONAL_DEFAULT_INSTALLED_OFFICIAL_PLUGINS`); removing
+either keeps it removed.
 
 The official plugins are:
 

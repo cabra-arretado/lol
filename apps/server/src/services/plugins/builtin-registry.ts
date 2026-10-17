@@ -185,6 +185,9 @@ export const BUILTIN_PLUGINS = [
   autoInstall: true,
 }));
 
+const PERSONAL_DEFAULT_INSTALLED_OFFICIAL_PLUGINS: ReadonlySet<string> =
+  new Set(["docs", "tasks"]);
+
 export const OFFICIAL_PLUGINS = [
   {
     name: "browser-automation",
@@ -218,7 +221,7 @@ export const OFFICIAL_PLUGINS = [
   },
 ].map((plugin): BundledPluginDefinition => ({
   ...plugin,
-  autoInstall: false,
+  autoInstall: PERSONAL_DEFAULT_INSTALLED_OFFICIAL_PLUGINS.has(plugin.name),
 }));
 
 export const BUNDLED_PLUGINS: readonly BundledPluginDefinition[] = [

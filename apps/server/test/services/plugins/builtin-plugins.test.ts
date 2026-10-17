@@ -260,7 +260,7 @@ describe("builtin plugin reconciliation", () => {
     workDir = await mkdtemp(join(tmpdir(), "bb-builtin-plugins-"));
   });
 
-  it("keeps official plugins bundled but out of the auto-install builtins", () => {
+  it("keeps official plugins bundled but out of the builtins, installing only Docs and Tasks by default", () => {
     const optionalNames = OFFICIAL_PLUGINS.map((plugin) => plugin.name);
     expect(optionalNames).toEqual([
       "browser-automation",
@@ -273,7 +273,11 @@ describe("builtin plugin reconciliation", () => {
     for (const name of optionalNames) {
       expect(BUILTIN_PLUGINS.map((plugin) => plugin.name)).not.toContain(name);
     }
-    expect(OFFICIAL_PLUGINS.every((plugin) => !plugin.autoInstall)).toBe(true);
+    expect(
+      OFFICIAL_PLUGINS.filter((plugin) => plugin.autoInstall).map(
+        (plugin) => plugin.name,
+      ),
+    ).toEqual(["docs", "tasks"]);
   });
 
   afterEach(async () => {

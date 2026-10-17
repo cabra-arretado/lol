@@ -15,6 +15,7 @@ import {
   pluginCatalogInstallRequestSchema,
   pluginCatalogSearchResponseSchema,
   pluginCatalogStatusResponseSchema,
+  pluginMarketplaceAccessSchema,
   pluginMarketplaceAddRequestSchema,
   pluginMarketplaceListResponseSchema,
   pluginMarketplaceMutationResponseSchema,
@@ -47,6 +48,7 @@ import {
   type PluginCatalogSearchResponse as PluginCatalogSearchResponseContract,
   type PluginCatalogSearchResult as PluginCatalogSearchContract,
   type PluginMarketplace as PluginMarketplaceContract,
+  type PluginMarketplaceAccess,
   type PluginMarketplaceRefreshResult as PluginMarketplaceRefreshContract,
   type PluginCatalogStatus as PluginCatalogStatusContract,
   type PluginInstallJob as PluginInstallJobContract,
@@ -145,6 +147,10 @@ export interface PluginCatalogInstallPlanArgs {
 export interface PluginMarketplaceAddArgs {
   source: string;
   subdirectory?: string;
+}
+
+export interface PluginMarketplaceAccessArgs {
+  signal?: AbortSignal;
 }
 
 export interface PluginMarketplaceListArgs {
@@ -247,6 +253,7 @@ export type PluginCatalogStatusResult = PluginCatalogStatusContract;
 export type PluginCatalogSearchEntry = PluginCatalogSearchContract;
 export type PluginCatalogSearchResult = PluginCatalogSearchResponseContract;
 export type PluginCatalogInstallPlanResult = PluginCatalogInstallPlanContract;
+export type PluginMarketplaceAccessResult = PluginMarketplaceAccess;
 export type PluginMarketplaceListResult = PluginMarketplaceContract[];
 export type PluginMarketplaceAddResult = PluginMarketplaceContract;
 export type PluginMarketplaceRefreshResult = PluginMarketplaceRefreshContract[];
@@ -266,6 +273,10 @@ export interface PluginCatalogArea {
 }
 
 export interface PluginMarketplacesArea {
+  access(
+    args?: PluginMarketplaceAccessArgs,
+  ): Promise<PluginMarketplaceAccessResult>;
+  setAccess(enabled: boolean): Promise<PluginMarketplaceAccessResult>;
   add(args: PluginMarketplaceAddArgs): Promise<PluginMarketplaceAddResult>;
   list(args?: PluginMarketplaceListArgs): Promise<PluginMarketplaceListResult>;
   refresh(
@@ -540,6 +551,20 @@ export function createPluginsArea(args: CreateSdkAreaArgs): PluginsArea {
   };
 
   const marketplaces: PluginMarketplacesArea = {
+    access(input = {}) {
+      return requestParsed(
+        "/api/v1/marketplaces/access",
+        pluginMarketplaceAccessSchema,
+        { signal: input.signal },
+      );
+    },
+    setAccess(enabled) {
+      return requestParsed(
+        "/api/v1/marketplaces/access",
+        pluginMarketplaceAccessSchema,
+        jsonInit("PUT", pluginMarketplaceAccessSchema.parse({ enabled })),
+      );
+    },
     async add(input) {
       const body = pluginMarketplaceAddRequestSchema.parse(input);
       const response = await requestParsed(

@@ -12,6 +12,7 @@ import {
   pluginInstallJobsQueryKey,
   pluginUpdateJobsQueryKey,
   pluginListQueryKey,
+  pluginMarketplaceAccessQueryKey,
   pluginMarketplacesQueryKey,
   pluginSafeModeQueryKey,
   pluginSettingsViewQueryKey,
@@ -112,6 +113,9 @@ export function invalidatePluginMarketplaces(args: {
 }): void {
   void args.queryClient.invalidateQueries({
     queryKey: pluginMarketplacesQueryKey(),
+  });
+  void args.queryClient.invalidateQueries({
+    queryKey: pluginMarketplaceAccessQueryKey(),
   });
   invalidatePluginCatalogSearch(args);
 }

@@ -127,6 +127,23 @@ describe("installEgressGuard", () => {
     expect(blocked).toEqual([{ host: "192.0.2.1", port: 80 }]);
   });
 
+  it("re-reads a dynamic allowlist on every connection", async () => {
+    const hosts: string[] = [];
+    const blocked: EgressAttempt[] = [];
+    restoreFns.push(
+      installEgressGuard({
+        allowedHosts: () => hosts,
+        onBlocked: (attempt) => blocked.push(attempt),
+      }),
+    );
+    const first = await connectError(net.connect(80, "example.invalid"));
+    expect(first).toBeInstanceOf(EgressBlockedError);
+    hosts.push("example.invalid");
+    const second = await connectError(net.connect(80, "example.invalid"));
+    expect(second).not.toBeInstanceOf(EgressBlockedError);
+    expect(blocked).toEqual([{ host: "example.invalid", port: 80 }]);
+  });
+
   it("restores the original connect on dispose", () => {
     const original = net.Socket.prototype.connect;
     const restore = installEgressGuard({

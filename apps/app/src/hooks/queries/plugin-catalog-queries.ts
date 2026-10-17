@@ -17,6 +17,7 @@ import { toEpochMs } from "./plugin-settings-queries";
 import {
   pluginCatalogInstallPlanQueryKey,
   pluginCatalogSearchQueryKey,
+  pluginMarketplaceAccessQueryKey,
   pluginMarketplacesQueryKey,
   pluginSourceQueryKey,
   pluginUpdateCheckQueryKey,
@@ -123,6 +124,21 @@ export async function refreshPluginMarketplaces(
   return createPluginsClient(fetchImpl).marketplaces.refresh(
     name === undefined ? {} : { name },
   );
+}
+
+export async function setPluginMarketplaceAccess(
+  fetchImpl: FetchLike,
+  enabled: boolean,
+): Promise<{ enabled: boolean }> {
+  return createPluginsClient(fetchImpl).marketplaces.setAccess(enabled);
+}
+
+export function usePluginMarketplaceAccess() {
+  return useQuery({
+    queryKey: pluginMarketplaceAccessQueryKey(),
+    queryFn: () => createPluginsClient(fetch).marketplaces.access(),
+    staleTime: 30_000,
+  });
 }
 
 export function usePluginMarketplaces(options: { enabled: boolean }) {

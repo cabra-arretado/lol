@@ -5,7 +5,11 @@ import type { PluginMarketplace } from "@bb/server-contract";
 import { Badge } from "@bb/shared-ui/badge";
 import { Button } from "@bb/shared-ui/button";
 import { Input } from "@bb/shared-ui/input";
-import { SettingsSection } from "@/components/ui/settings-section";
+import { Switch } from "@bb/shared-ui/switch";
+import {
+  SettingsSection,
+  SettingsWithControl,
+} from "@/components/ui/settings-section";
 import { appToast } from "@/components/ui/app-toast";
 import {
   ConfirmDeleteDialog,
@@ -17,9 +21,12 @@ import {
   addPluginMarketplace,
   refreshPluginMarketplaces,
   removePluginMarketplace,
+  setPluginMarketplaceAccess,
+  usePluginMarketplaceAccess,
   usePluginMarketplaces,
 } from "@/hooks/queries/plugin-catalog-queries";
 
+const BUNDLED_MARKETPLACE_NAME = "bb-official";
 const SOURCE_PLACEHOLDER = "https://example.com/marketplace.json";
 const SUBDIRECTORY_PLACEHOLDER = "Subdirectory (optional)";
 
@@ -39,8 +46,22 @@ export function MarketplacesSettingsSection() {
   const [removing, setRemoving] = useState<PluginMarketplace | null>(null);
   const marketplacesQuery = usePluginMarketplaces({ enabled: true });
   const marketplaces = marketplacesQuery.data ?? [];
+  const accessQuery = usePluginMarketplaceAccess();
+  const accessEnabled = accessQuery.data?.enabled ?? false;
 
   const invalidate = () => invalidatePluginMarketplaces({ queryClient });
+
+  const setAccess = useMutation({
+    meta: { showErrorToast: false },
+    mutationFn: (enabled: boolean) =>
+      setPluginMarketplaceAccess(fetch, enabled),
+    onSuccess: invalidate,
+    onError: (error) => {
+      appToast.error("Changing marketplace access failed", {
+        description: pluginAdminErrorMessage(error),
+      });
+    },
+  });
 
   const add = useMutation({
     meta: { showErrorToast: false },
@@ -108,7 +129,19 @@ export function MarketplacesSettingsSection() {
       description="bb reads plugin catalogs from these marketplaces. Adding one validates and caches its catalog; it never installs, updates, or runs plugin code."
       bodyClassName="border-0 bg-transparent p-0"
     >
-      {isCapabilityAllowed("remoteMarketplace") ? (
+      <SettingsWithControl
+        label="Allow contacting the plugin marketplace"
+        description="Off by default, so bb makes no marketplace requests and lists only the plugins bundled with the app. When on, bb contacts the marketplace only when you press Refresh, and installing a marketplace plugin still asks you to confirm its exact source. Nothing runs in the background."
+      >
+        <Switch
+          checked={accessEnabled}
+          disabled={accessQuery.data === undefined || setAccess.isPending}
+          onCheckedChange={(enabled) => setAccess.mutate(enabled)}
+          aria-label="Allow contacting the plugin marketplace"
+        />
+      </SettingsWithControl>
+
+      {isCapabilityAllowed("thirdPartyPluginInstall") ? (
         <div className="space-y-1.5">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1 space-y-1.5">
@@ -191,7 +224,11 @@ export function MarketplacesSettingsSection() {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={refresh.isPending}
+                disabled={
+                  refresh.isPending ||
+                  (marketplace.name !== BUNDLED_MARKETPLACE_NAME &&
+                    !accessEnabled)
+                }
                 aria-label={`Refresh ${marketplace.displayName}`}
                 onClick={() => refresh.mutate(marketplace.name)}
               >

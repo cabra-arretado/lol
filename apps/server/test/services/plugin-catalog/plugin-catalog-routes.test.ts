@@ -10,11 +10,7 @@ import { createPluginInstallJobs } from "../../../src/services/plugins/plugin-in
 import { createPluginCatalogService } from "../../../src/services/plugin-catalog/plugin-catalog-service.js";
 import { refreshCuratedMarketplace } from "../../helpers/plugin-catalog.js";
 import { BUNDLED_CURATED_MARKETPLACE } from "../../../src/services/plugin-catalog/curated-marketplace.js";
-import {
-  BUILTIN_PLUGINS,
-  BUNDLED_PLUGINS,
-  OFFICIAL_PLUGINS,
-} from "../../../src/services/plugins/builtin-registry.js";
+import { BUNDLED_PLUGINS } from "../../../src/services/plugins/builtin-registry.js";
 
 const MANIFEST_URL = "https://marketplace.test/marketplace.json";
 const SEED_ENTRY_COUNT = BUNDLED_CURATED_MARKETPLACE.plugins.length;
@@ -65,6 +61,7 @@ describe("plugin catalog routes", () => {
       catalog,
       createPluginInstallJobs({ notifyChanged: () => {} }),
       () => true,
+      { db, notifyChanged: () => {} },
     );
     return { app, catalog };
   }
@@ -76,8 +73,12 @@ describe("plugin catalog routes", () => {
     await expect(status.json()).resolves.toMatchObject({
       catalog: {
         pluginCount: BUNDLED_PLUGINS.length + SEED_ENTRY_COUNT,
-        includedPluginCount: BUILTIN_PLUGINS.length,
-        optionalPluginCount: OFFICIAL_PLUGINS.length + SEED_ENTRY_COUNT,
+        includedPluginCount: BUNDLED_PLUGINS.filter(
+          (plugin) => plugin.autoInstall,
+        ).length,
+        optionalPluginCount:
+          BUNDLED_PLUGINS.filter((plugin) => !plugin.autoInstall).length +
+          SEED_ENTRY_COUNT,
       },
     });
     const search = await app.request(
