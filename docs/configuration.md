@@ -73,7 +73,8 @@ below describes one of these features, the personal edition behaves as follows:
   so remote images and media in Markdown previews and agent output do not load
   in a browser either.
 - The UI hides what the policy denies: Settings → Mobile and Settings →
-  Updates, the Add a machine action, the add-marketplace form, the skills.sh
+  Updates, the Add a machine action, Machine access, the Mobile apps footer
+  shortcut, the add-marketplace form, the skills.sh
   registry browser (Skills opens your library), and the onboarding Devices
   step.
 - The bb account, bb connect, bb cloud AI, push notifications, Account Pooler
