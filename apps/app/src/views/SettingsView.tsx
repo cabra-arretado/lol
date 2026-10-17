@@ -67,7 +67,6 @@ import { PluginSettingsPage } from "@/components/plugin/PluginSettings";
 import { FileOpenersSettingsSection } from "@/components/settings/FileOpenersSettingsSection";
 import { VoiceInputSettingsSection } from "@/components/settings/VoiceInputSettingsSection";
 import { AiServicesSettingsSection } from "@/components/settings/AiServicesSettingsSection";
-import { CommunitySettingsSection } from "@/components/settings/CommunitySettingsSection";
 import { UpdatesSettingsSection } from "@/components/settings/UpdatesSettingsSection";
 import { KeyboardSettingsSection } from "@/components/settings/KeyboardSettingsSection";
 import { BrowserSettingsSection } from "@/components/settings/BrowserSettingsSection";
@@ -1400,8 +1399,6 @@ export function SettingsView() {
     );
   } else if (activeSection === "marketplaces") {
     content = <MarketplacesSettingsSection />;
-  } else if (activeSection === "community") {
-    content = <CommunitySettingsSection />;
   } else if (activeSection === "archived") {
     content = <ArchivedThreadsSettingsSection />;
   } else {

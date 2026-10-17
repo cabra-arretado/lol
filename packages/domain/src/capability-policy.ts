@@ -23,7 +23,7 @@ export const capabilityIds = [
 export const capabilityIdSchema = z.enum(capabilityIds);
 export type CapabilityId = z.infer<typeof capabilityIdSchema>;
 
-export const capabilityStateSchema = z.enum(["allowed", "denied"]);
+export const capabilityStateSchema = z.enum(["allowed", "denied", "optIn"]);
 export type CapabilityState = z.infer<typeof capabilityStateSchema>;
 
 export const capabilityEditionSchema = z.enum(["personal"]);
@@ -66,8 +66,9 @@ export const PERSONAL_EDITION_CAPABILITIES: Readonly<
     state: "denied",
   },
   remoteMarketplace: {
-    description: "Fetch plugin marketplace catalogs from the network",
-    state: "denied",
+    description:
+      "Contact the plugin marketplace to refresh its catalog and install its plugins",
+    state: "optIn",
   },
   thirdPartyPluginInstall: {
     description: "Install plugins from npm or git sources",
@@ -123,6 +124,10 @@ export const CAPABILITY_EDITION: CapabilityEdition = "personal";
 
 export function isCapabilityAllowed(id: CapabilityId): boolean {
   return PERSONAL_EDITION_CAPABILITIES[id].state === "allowed";
+}
+
+export function isCapabilityOptIn(id: CapabilityId): boolean {
+  return PERSONAL_EDITION_CAPABILITIES[id].state === "optIn";
 }
 
 export function capabilityPolicyView(): CapabilityPolicy {

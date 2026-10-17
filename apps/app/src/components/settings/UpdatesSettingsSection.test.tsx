@@ -397,7 +397,9 @@ describe("UpdatesSettingsSection", () => {
     });
     useUpdateInventoryMock.mockReturnValue(
       makeInventory({
-        machines: [makeMachine({ host: makeHost({ id: "host_1" }) })],
+        machines: [
+          makeMachine({ host: makeHost({ id: "host_1", name: "Host" }) }),
+        ],
       }),
     );
 

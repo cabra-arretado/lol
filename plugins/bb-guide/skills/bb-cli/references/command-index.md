@@ -299,6 +299,7 @@ This index lists every command path that the core CLI registers, including alias
 ## marketplace
 
 - `bb marketplace`
+- `bb marketplace access`
 - `bb marketplace add`
 - `bb marketplace list`
 - `bb marketplace refresh`

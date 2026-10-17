@@ -529,29 +529,31 @@ export function MachineSettingsView() {
                 </span>
               )}
             </SettingsDetailRow>
-            <SettingsDetailRow label="Updates">
-              <span>{updateStatus ?? "Up to date"}</span>
-              {hostCanRetryUpdate(host) ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  disabled={retryHostUpdate.isPending}
-                  onClick={() =>
-                    retryHostUpdate.mutate(host.id, {
-                      onSuccess: () => {
-                        appToast.success(
-                          `Update retry requested for ${host.name}`,
-                        );
-                      },
-                    })
-                  }
-                >
-                  {retryHostUpdate.isPending ? "Retrying…" : "Retry update"}
-                </Button>
-              ) : null}
-            </SettingsDetailRow>
+            {updateStatus !== null || hostCanRetryUpdate(host) ? (
+              <SettingsDetailRow label="Updates">
+                <span>{updateStatus}</span>
+                {hostCanRetryUpdate(host) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    disabled={retryHostUpdate.isPending}
+                    onClick={() =>
+                      retryHostUpdate.mutate(host.id, {
+                        onSuccess: () => {
+                          appToast.success(
+                            `Update retry requested for ${host.name}`,
+                          );
+                        },
+                      })
+                    }
+                  >
+                    {retryHostUpdate.isPending ? "Retrying…" : "Retry update"}
+                  </Button>
+                ) : null}
+              </SettingsDetailRow>
+            ) : null}
           </SettingsRowList>
         </SettingsSection>
 

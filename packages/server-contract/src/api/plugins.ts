@@ -641,6 +641,13 @@ export const pluginMarketplaceListResponseSchema = z.object({
   marketplaces: z.array(pluginMarketplaceSchema),
 });
 
+export const pluginMarketplaceAccessSchema = z
+  .object({ enabled: z.boolean() })
+  .strict();
+export type PluginMarketplaceAccess = z.infer<
+  typeof pluginMarketplaceAccessSchema
+>;
+
 export const pluginMarketplaceAddRequestSchema = z
   .object({
     source: z.string().min(1),

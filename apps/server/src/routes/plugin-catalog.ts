@@ -1,7 +1,17 @@
-import { assertCapabilityAllowed, type CapabilityCheck } from "@bb/domain";
+import {
+  assertCapabilityAllowed,
+  CapabilityDeniedError,
+  type CapabilityCheck,
+} from "@bb/domain";
 import { BUNDLED_MARKETPLACE_NAME } from "../services/plugin-catalog/bundled-marketplace-paths.js";
 import {
+  getMarketplaceAccess,
+  setMarketplaceAccess,
+  type DbConnection,
+} from "@bb/db";
+import {
   pluginCatalogInstallRequestSchema,
+  pluginMarketplaceAccessSchema,
   pluginMarketplaceAddRequestSchema,
   pluginMarketplaceNameSchema,
   pluginMarketplaceRefreshRequestSchema,
@@ -32,6 +42,7 @@ export function registerPluginCatalogRoutes(
   catalog: PluginCatalogService,
   installJobs: PluginInstallJobs,
   isAllowed: CapabilityCheck,
+  access: { db: DbConnection; notifyChanged: () => void },
 ): void {
   app.get("/plugin-catalog", (context) =>
     context.json({ catalog: catalog.status() }),
@@ -77,6 +88,15 @@ export function registerPluginCatalogRoutes(
       );
     }
     try {
+      const entry = catalog.describeEntry(selector);
+      if (entry.marketplace !== BUNDLED_MARKETPLACE_NAME) {
+        assertCapabilityAllowed("remoteMarketplace", isAllowed);
+      }
+    } catch (error) {
+      if (error instanceof CapabilityDeniedError) throw error;
+      return context.json({ error: errorMessage(error) }, 422);
+    }
+    try {
       return context.json({ plan: await catalog.installPlan(selector) });
     } catch (error) {
       return context.json({ error: errorMessage(error) }, 422);
@@ -102,7 +122,7 @@ export function registerPluginCatalogRoutes(
       return context.json({ error: errorMessage(error) }, 422);
     }
     if (entry.marketplace !== BUNDLED_MARKETPLACE_NAME) {
-      assertCapabilityAllowed("thirdPartyPluginInstall", isAllowed);
+      assertCapabilityAllowed("remoteMarketplace", isAllowed);
     }
     const input = body.data;
     const job = installJobs.start({
@@ -123,8 +143,23 @@ export function registerPluginCatalogRoutes(
     context.json({ marketplaces: catalog.listMarketplaces() }),
   );
 
+  app.get("/marketplaces/access", (context) =>
+    context.json({ enabled: getMarketplaceAccess(access.db) }),
+  );
+
+  app.put("/marketplaces/access", async (context) => {
+    const json: unknown = await context.req.json().catch(() => null);
+    const body = pluginMarketplaceAccessSchema.safeParse(json);
+    if (!body.success) {
+      return context.json({ error: 'expected { "enabled": boolean }' }, 422);
+    }
+    setMarketplaceAccess(access.db, body.data.enabled);
+    access.notifyChanged();
+    return context.json({ enabled: body.data.enabled });
+  });
+
   app.post("/marketplaces", async (context) => {
-    assertCapabilityAllowed("remoteMarketplace", isAllowed);
+    assertCapabilityAllowed("thirdPartyPluginInstall", isAllowed);
     const json: unknown = await context.req.json().catch(() => null);
     const body = pluginMarketplaceAddRequestSchema.safeParse(json);
     if (!body.success) {
@@ -152,9 +187,19 @@ export function registerPluginCatalogRoutes(
     if (!body.success) {
       return context.json({ error: 'expected { "name"?: string }' }, 422);
     }
+    if (
+      body.data.name !== undefined &&
+      body.data.name !== BUNDLED_MARKETPLACE_NAME
+    ) {
+      assertCapabilityAllowed("remoteMarketplace", isAllowed);
+    }
+    const target =
+      body.data.name === undefined && !isAllowed("remoteMarketplace")
+        ? { name: BUNDLED_MARKETPLACE_NAME }
+        : body.data;
     try {
       return context.json({
-        results: await catalog.refreshMarketplaces(body.data),
+        results: await catalog.refreshMarketplaces(target),
       });
     } catch (error) {
       return context.json({ error: errorMessage(error) }, 422);

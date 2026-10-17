@@ -128,12 +128,14 @@ export {
   getAppSettings,
   getDisabledPluginProviderCatalog,
   getDisabledProviderIds,
+  getMarketplaceAccess,
   getPluginSafeMode,
   setAiServiceSelection,
   setAppKeybindingOverrides,
   setAppSettings,
   setDisabledPluginProviderCatalog,
   setDisabledProviderIds,
+  setMarketplaceAccess,
   setPluginSafeMode,
 } from "./app-settings.js";
 export { getStoredThreadTabs, replaceStoredThreadTabs } from "./thread-tabs.js";
