@@ -129,3 +129,14 @@ describe("Tasks nav panel sidebar accessory", () => {
     expect(await slot.findByText("13")).toBeDefined();
   });
 });
+
+describe("Todos nav panel", () => {
+  it("registers its own rail entry next to Tasks", () => {
+    expect(
+      app.navPanels.map((panel) => [panel.id, panel.path, panel.icon]),
+    ).toEqual([
+      ["tasks", "tasks", "ListTodo"],
+      ["todos", "todos", "CircleCheck"],
+    ]);
+  });
+});

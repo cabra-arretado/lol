@@ -2,6 +2,7 @@ import { definePluginApp } from "@get-bb/plugin-sdk/app";
 import { TasksAppShell } from "./shell/app-shell.js";
 import { TasksSidebarAccessory } from "./shell/sidebar-accessory.js";
 import { TasksNavigationPanel } from "./shell/navigation-panel.js";
+import { TodosPanel } from "./views/todos/panel.js";
 import { TaskDirectiveCard, TaskEmbedPanel } from "./views/embed/index.js";
 
 export default definePluginApp((app) => {
@@ -22,6 +23,13 @@ export default definePluginApp((app) => {
         layout: "flush",
       },
     ],
+  });
+  app.slots.navPanel({
+    id: "todos",
+    title: "Todos",
+    icon: "CircleCheck",
+    path: "todos",
+    component: TodosPanel,
   });
   app.slots.threadPanelAction({
     id: "task",
