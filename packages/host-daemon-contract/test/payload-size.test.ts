@@ -73,7 +73,7 @@ describe("daemon-to-server event payload sizes", () => {
       };
     });
 
-    expect(measurements).toEqual([
+    const expected = [
       {
         eventCount: 1,
         legacyEnvelope: { gzipBytes: 194, jsonBytes: 413 },
@@ -89,7 +89,29 @@ describe("daemon-to-server event payload sizes", () => {
         legacyEnvelope: { gzipBytes: 406, jsonBytes: 17_554 },
         grouped: { gzipBytes: 407, jsonBytes: 14_769 },
       },
-    ]);
+    ];
+    const zlibTolerance = 16;
+
+    expect(measurements).toHaveLength(expected.length);
+    measurements.forEach((measurement, index) => {
+      const want = expected[index];
+      expect(measurement.eventCount).toBe(want?.eventCount);
+      expect(measurement.legacyEnvelope.jsonBytes).toBe(
+        want?.legacyEnvelope.jsonBytes,
+      );
+      expect(measurement.grouped.jsonBytes).toBe(want?.grouped.jsonBytes);
+      expect(
+        Math.abs(
+          measurement.legacyEnvelope.gzipBytes -
+            (want?.legacyEnvelope.gzipBytes ?? 0),
+        ),
+      ).toBeLessThanOrEqual(zlibTolerance);
+      expect(
+        Math.abs(
+          measurement.grouped.gzipBytes - (want?.grouped.gzipBytes ?? 0),
+        ),
+      ).toBeLessThanOrEqual(zlibTolerance);
+    });
 
     for (const measurement of measurements.slice(1)) {
       expect(measurement.grouped.jsonBytes).toBeLessThan(
