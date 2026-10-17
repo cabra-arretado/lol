@@ -132,11 +132,7 @@ it("forwards validated provider-owned identity and normalization metadata while 
       },
       providers: {
         list: async () => [
-          {
-            id: "acp-custom",
-            displayName: "Custom",
-            pluginId: "bb--provider-acp-next",
-          },
+          { id: "acp-custom", displayName: "Custom", pluginId: "bb--provider-acp-next" },
         ],
       },
       system: {
@@ -212,11 +208,7 @@ it("coalesces concurrent reads and makes a forced refresh wait for a fresh colle
       },
       providers: {
         list: async () => [
-          {
-            id: "acp-custom",
-            displayName: "Custom",
-            pluginId: "bb--provider-acp-next",
-          },
+          { id: "acp-custom", displayName: "Custom", pluginId: "bb--provider-acp-next" },
         ],
       },
       system: { usageLimits: collect },
