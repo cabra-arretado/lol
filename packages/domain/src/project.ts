@@ -6,11 +6,25 @@ const projectKindValues = ["standard", "personal"] as const;
 const projectKindSchema = z.enum(projectKindValues);
 export type ProjectKind = z.infer<typeof projectKindSchema>;
 
+export const PROJECT_COLORS = [
+  "red",
+  "orange",
+  "amber",
+  "green",
+  "teal",
+  "blue",
+  "violet",
+  "pink",
+] as const;
+export const projectColorSchema = z.enum(PROJECT_COLORS);
+export type ProjectColor = z.infer<typeof projectColorSchema>;
+
 export const projectSchema = z.object({
   id: z.string(),
   kind: projectKindSchema,
   name: z.string(),
   gitRemoteUrl: z.string().nullable(),
+  color: projectColorSchema.nullable(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

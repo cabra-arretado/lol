@@ -1,6 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { Command } from "commander";
+import {
+  PROJECT_COLORS,
+  projectColorSchema,
+  type ProjectColor,
+} from "@bb/domain";
 import type {
   CreateProjectSourceRequest,
   HostDiscoveredRepo,
@@ -74,6 +79,7 @@ function addProjectWorkspaceRoutingOptions(command: Command): Command {
 
 interface ProjectUpdateCommandOptions {
   name?: string;
+  color?: string;
   json?: boolean;
 }
 
@@ -555,16 +561,23 @@ export function registerProjectCommands(
     .command("update <id>")
     .description("Update a project")
     .option("--name <name>", "Set the project name")
+    .option(
+      "--color <color>",
+      `Set the sidebar color (${PROJECT_COLORS.join(", ")}, or none to clear)`,
+    )
     .option("--json", "Print machine-readable JSON output")
     .action(
       action(async (id: string, opts: ProjectUpdateCommandOptions) => {
-        if (!opts.name) {
-          throw new Error("No changes requested. Provide --name.");
+        if (!opts.name && opts.color === undefined) {
+          throw new Error("No changes requested. Provide --name or --color.");
         }
         const sdk = createCliBbSdk(getUrl());
         const updated = await sdk.projects.update({
           projectId: id,
-          name: opts.name,
+          ...(opts.name ? { name: opts.name } : {}),
+          ...(opts.color !== undefined
+            ? { color: parseProjectColorOption(opts.color) }
+            : {}),
         });
         if (outputJson(opts, updated)) return;
         console.log(`Project ${updated.id} updated`);
@@ -706,10 +719,22 @@ export function registerProjectCommands(
     );
 }
 
+function parseProjectColorOption(value: string): ProjectColor | null {
+  if (value === "none") return null;
+  const parsed = projectColorSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `--color must be one of: ${PROJECT_COLORS.join(", ")}, or none.`,
+    );
+  }
+  return parsed.data;
+}
+
 function printProject(project: ProjectResponse): void {
   console.log("");
   console.log(`  ID:       ${project.id}`);
   console.log(`  Name:     ${project.name}`);
+  console.log(`  Color:    ${project.color ?? "none"}`);
   console.log(`  Created:  ${new Date(project.createdAt).toLocaleString()}`);
   console.log(`  Updated:  ${new Date(project.updatedAt).toLocaleString()}`);
   if (project.sources.length > 0) {

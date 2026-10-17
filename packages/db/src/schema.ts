@@ -37,6 +37,7 @@ import type {
   ThreadEventItemType,
   ThreadEventScopeKind,
   ThreadEventType,
+  ProjectColor,
   ProjectKind,
 } from "@bb/domain";
 import type { RetainedEventOutputPath } from "./retained-event-output.js";
@@ -158,6 +159,7 @@ export const projects = sqliteTable(
     kind: text("kind").$type<ProjectKind>().notNull().default("standard"),
     name: text("name").notNull(),
     gitRemoteUrl: text("git_remote_url"),
+    color: text("color").$type<ProjectColor>(),
     sortKey: text("sort_key").notNull().default("V"),
     deletedAt: integer("deleted_at"),
     createdAt: integer("created_at").notNull(),

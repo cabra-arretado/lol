@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import "@bb/shared-ui/icon-extended";
 import {
   findLocalPathProjectSourceForHost,
+  PROJECT_COLORS,
   type Host,
   type LocalPathProjectSource,
 } from "@bb/domain";
@@ -12,6 +13,7 @@ import { Icon } from "@bb/shared-ui/icon";
 import { cn } from "@bb/shared-ui/lib/utils";
 import { Pill } from "@bb/shared-ui/pill";
 import { ResourceOverflowMenu } from "@bb/shared-ui/resource-list";
+import { projectColorCss, projectColorLabel } from "@/lib/project-color";
 import { ProjectPathDialog } from "@/components/dialogs/ProjectPathDialog";
 import {
   ProjectDeleteDialog,
@@ -390,6 +392,50 @@ export function ProjectDetailSettingsView() {
             />
           </div>
         </div>
+
+        <SettingsSection
+          title="Sidebar color"
+          description="Marks this project in the sidebar so it is easy to tell apart."
+        >
+          <div
+            role="radiogroup"
+            aria-label="Sidebar color"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={project.color === null}
+              aria-label="No color"
+              disabled={updateProject.isPending}
+              className={cn(
+                "inline-flex size-6 items-center justify-center rounded-full border border-subtle-foreground/60 text-subtle-foreground outline-none ring-sidebar-ring focus-visible:ring-2",
+                project.color === null && "ring-2",
+              )}
+              onClick={() =>
+                updateProject.mutate({ id: project.id, color: null })
+              }
+            >
+              <Icon name="X" className="size-3" aria-hidden="true" />
+            </button>
+            {PROJECT_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                role="radio"
+                aria-checked={project.color === color}
+                aria-label={projectColorLabel(color)}
+                disabled={updateProject.isPending}
+                className={cn(
+                  "size-6 rounded-full outline-none ring-sidebar-ring focus-visible:ring-2",
+                  project.color === color && "ring-2",
+                )}
+                style={{ backgroundColor: projectColorCss(color) }}
+                onClick={() => updateProject.mutate({ id: project.id, color })}
+              />
+            ))}
+          </div>
+        </SettingsSection>
 
         <SettingsSection title="Checkouts" description={CHECKOUTS_DESCRIPTION}>
           {hosts.length === 0 ? (

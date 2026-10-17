@@ -65,6 +65,15 @@ export function dropThreadParentNotificationsColumn(db: DbConnection): void {
   }
 }
 
+export function dropProjectColorColumn(db: DbConnection): void {
+  const columns = db.$client
+    .prepare<[], { name: string }>("PRAGMA table_info(projects)")
+    .all();
+  if (columns.some((column) => column.name === "color")) {
+    db.$client.exec("ALTER TABLE projects DROP COLUMN color");
+  }
+}
+
 export const QUEUED_MESSAGE_STATE_MIGRATION_WHEN = 1792010323040;
 
 interface QueuedTableColumn {

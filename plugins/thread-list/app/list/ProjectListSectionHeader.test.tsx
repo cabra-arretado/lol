@@ -314,4 +314,37 @@ describe("TopLevelSidebarSection", () => {
     expect(document.querySelector("[data-thread-status-glyph]")).toBeNull();
     expect(screen.getByText("Draft thread")).not.toBeNull();
   });
+
+  it("marks a colored project and distinguishes the current one", () => {
+    const { container } = renderTree(
+      <>
+        <TopLevelSidebarSection label="Alpha" accentColor="teal" isCurrent>
+          <div>Alpha thread</div>
+        </TopLevelSidebarSection>
+        <TopLevelSidebarSection label="Beta" accentColor="red">
+          <div>Beta thread</div>
+        </TopLevelSidebarSection>
+        <TopLevelSidebarSection label="Gamma">
+          <div>Gamma thread</div>
+        </TopLevelSidebarSection>
+      </>,
+    );
+
+    const dots = [
+      ...container.querySelectorAll("[data-sidebar-project-color]"),
+    ];
+    expect(
+      dots.map((dot) => dot.getAttribute("data-sidebar-project-color")),
+    ).toEqual(["teal", "red"]);
+    expect(
+      container.querySelectorAll("[data-sidebar-current-project]"),
+    ).toHaveLength(1);
+    expect(
+      container
+        .querySelector("[data-sidebar-current-project]")
+        ?.getAttribute("aria-current"),
+    ).toBe("true");
+    expect(screen.getByText("Alpha").className).toContain("font-semibold");
+    expect(screen.getByText("Beta").className).not.toContain("font-semibold");
+  });
 });

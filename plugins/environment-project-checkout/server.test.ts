@@ -22,6 +22,7 @@ const PROJECT: PluginEnvironmentProviderCreateContext["project"] = {
   kind: "standard",
   name: "bb",
   gitRemoteUrl: null,
+  color: null,
   createdAt: 1,
   updatedAt: 1,
 };

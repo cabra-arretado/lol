@@ -2105,6 +2105,18 @@ Docs: `frontend-renderer-slots.md`, `testing.md`.
 5. **Source visibility.** Decide whether BB should offer its own "view
    source" control for claimed fences instead of leaving it to each plugin.
 
+## `PluginSidebarProject.experimental_color` (`@get-bb/plugin-sdk/app`)
+
+**Added 2026-10-17.** The user-chosen sidebar color of a project
+(`ProjectColor | null`, edited in project settings or with
+`bb project update --color`). Core caller: the built-in `thread-list` plugin
+reads it from the same `experimental_useSidebarThreads` projection to draw the
+project's color dot.
+
+**Audit before stabilizing.** Confirm the fixed palette (`PROJECT_COLORS` in
+`@bb/domain`) is the right contract for plugins, then rename project-wide and
+remove this entry.
+
 ## `experimental_useSidebarThreads` / `experimental_useSidebarThreadActions` (`@get-bb/plugin-sdk/app`)
 
 **Kept experimental (2026-08-22).** There are no consumers. Items 4 (a

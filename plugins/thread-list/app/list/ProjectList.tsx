@@ -574,6 +574,13 @@ function ProjectModeSections({
     }
     return grouped;
   }, [effectivePinnedThreadIds, threads]);
+  const selectedProjectId = useMemo(() => {
+    if (selectedThreadId === undefined) return null;
+    const threadsById = new Map(threads.map((thread) => [thread.id, thread]));
+    const selectedThread = threadsById.get(selectedThreadId);
+    if (selectedThread === undefined) return null;
+    return createSidebarProjectIdResolver(threadsById)(selectedThread);
+  }, [selectedThreadId, threads]);
   const projectRows = useMemo<ProjectListRowModel[]>(
     () =>
       projects
@@ -584,9 +591,9 @@ function ProjectModeSections({
             status,
             threads: threadsByProject.get(project.id),
           }),
-          isActive: false,
+          isActive: project.id === selectedProjectId,
         })),
-    [projects, status, threadsByProject],
+    [projects, selectedProjectId, status, threadsByProject],
   );
   const projectSectionIds = useMemo(
     () =>

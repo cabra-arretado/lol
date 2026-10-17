@@ -2128,6 +2128,7 @@ export const ChronologicalSectionThreadSections = memo(
 
 function ProjectRowComponent({
   project,
+  isActive,
   threadListState,
   rootItems,
   selectedThreadId,
@@ -2233,6 +2234,8 @@ function ProjectRowComponent({
         >
           <TopLevelSidebarSection
             label={project.name}
+            accentColor={project.color}
+            isCurrent={isActive}
             dropParentKey={buildSidebarEntitySectionId("project", project.id)}
             labelEditor={rename.editor}
             onRename={rename.startEditingFromDoubleClick}

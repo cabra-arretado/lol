@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sdk } from "@/lib/sdk";
 import { createQueryClientTestHarness } from "@/test/queryClientTestHarness";
 import { makeSystemConfig } from "@/test/fixtures/system-config";
+import { makeProjectResponse } from "@/test/fixtures/projects";
 import { SETTINGS_PROJECT_ROUTE_PATH } from "@/lib/route-paths";
 import { ProjectDetailSettingsView } from "./ProjectDetailSettingsView";
 
@@ -316,6 +317,42 @@ describe("ProjectDetailSettingsView", () => {
       await screen.findByText("Couldn't load thread defaults."),
     ).toBeDefined();
     expect(screen.queryByText(/^No threads have run here yet/u)).toBeNull();
+  });
+
+  it("sets the sidebar color", async () => {
+    stubSidebarBootstrapFetch([
+      { hostId: "host_primary", path: "/Users/me/bb" },
+    ]);
+    vi.mocked(sdk.projects.update).mockResolvedValue(
+      makeProjectResponse({ id: "proj_bb", color: "teal" }),
+    );
+
+    renderView();
+    fireEvent.click(await screen.findByRole("radio", { name: "Teal" }));
+    await waitFor(() =>
+      expect(sdk.projects.update).toHaveBeenCalledWith({
+        projectId: "proj_bb",
+        color: "teal",
+      }),
+    );
+  });
+
+  it("clears the sidebar color", async () => {
+    stubSidebarBootstrapFetch([
+      { hostId: "host_primary", path: "/Users/me/bb" },
+    ]);
+    vi.mocked(sdk.projects.update).mockResolvedValue(
+      makeProjectResponse({ id: "proj_bb", color: null }),
+    );
+
+    renderView();
+    fireEvent.click(await screen.findByRole("radio", { name: "No color" }));
+    await waitFor(() =>
+      expect(sdk.projects.update).toHaveBeenCalledWith({
+        projectId: "proj_bb",
+        color: null,
+      }),
+    );
   });
 
   it("deletes the project and returns to the list", async () => {

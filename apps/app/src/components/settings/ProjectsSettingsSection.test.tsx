@@ -332,6 +332,7 @@ describe("ProjectsSettingsSection", () => {
       kind: "standard",
       name: "bb-next",
       gitRemoteUrl: null,
+      color: null,
       createdAt: NOW,
       updatedAt: NOW,
       sources: [],

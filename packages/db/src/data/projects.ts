@@ -1,7 +1,7 @@
 import { prepareCachedQuery } from "../connection.js";
 import { hostPathEquals } from "./host-path-sql.js";
 import { and, asc, desc, eq, isNull, placeholder } from "drizzle-orm";
-import { PERSONAL_PROJECT_ID } from "@bb/domain";
+import { PERSONAL_PROJECT_ID, type ProjectColor } from "@bb/domain";
 import type {
   DbConnection,
   DbQueryConnection,
@@ -270,6 +270,7 @@ export function ensurePersonalProject(db: DbConnection) {
 
 export interface UpdateProjectInput {
   name?: string;
+  color?: ProjectColor | null;
 }
 
 export function setProjectGitRemoteUrlIfMissing(

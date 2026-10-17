@@ -21,6 +21,7 @@ import {
 import { withTestHarness } from "../helpers/test-app.js";
 
 const projectResponseSchema = z.object({
+  color: z.string().nullable(),
   id: z.string(),
   gitRemoteUrl: z.string().nullable(),
   sources: z.array(
@@ -201,6 +202,56 @@ describe("public project local host routes", () => {
       );
       expect(repeatedProject.id).toBe(firstProject.id);
       expect(listPublicProjects(harness.db)).toHaveLength(1);
+    });
+  });
+
+  it("sets, keeps, and clears a project's sidebar color", async () => {
+    await withTestHarness(async (harness) => {
+      const host = seedHost(harness.deps, { id: "host-project-color" });
+      seedPrimaryHost(harness.deps, host.id);
+      const createResponse = await harness.app.request("/api/v1/projects", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Colorful",
+          source: {
+            type: "local_path",
+            hostId: host.id,
+            path: "/tmp/colorful",
+          },
+        }),
+      });
+      const project = projectResponseSchema.parse(
+        await readJson(createResponse),
+      );
+      expect(project.color).toBeNull();
+
+      const patch = (body: unknown) =>
+        harness.app.request(`/api/v1/projects/${project.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+      const colored = await patch({ color: "teal" });
+      expect(colored.status).toBe(200);
+      expect(projectResponseSchema.parse(await readJson(colored)).color).toBe(
+        "teal",
+      );
+
+      const renamed = await patch({ name: "Renamed" });
+      await expect(readJson(renamed)).resolves.toMatchObject({
+        name: "Renamed",
+        color: "teal",
+      });
+
+      const cleared = await patch({ color: null });
+      expect(
+        projectResponseSchema.parse(await readJson(cleared)).color,
+      ).toBeNull();
+
+      expect((await patch({ color: "chartreuse" })).status).toBe(400);
+      expect((await patch({})).status).toBe(400);
     });
   });
 
