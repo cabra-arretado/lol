@@ -411,9 +411,8 @@ export function MachinesSettingsSection() {
           <div className="min-w-0 space-y-1 text-xs leading-relaxed text-subtle-foreground">
             <p className="font-medium text-foreground">How machines connect</p>
             <p>
-              All your machines connect to one central bb server, where your
-              threads and settings are stored. Choose a machine that can stay
-              awake and online to run the server.
+              Your threads and settings are stored by the lol server running on
+              this computer. Machines listed here run agents for that server.
             </p>
             {serverMoveEnabled ? (
               <p>

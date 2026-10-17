@@ -233,16 +233,6 @@ export const SETTINGS_SEARCH_INDEX: Record<
       },
     ],
   },
-  community: {
-    keywords: ["help", "support", "feedback"],
-    settings: [
-      { title: "Discord", keywords: ["chat", "support"] },
-      {
-        title: "GitHub",
-        keywords: ["issues", "source code", "bug report", "releases"],
-      },
-    ],
-  },
   archived: {
     keywords: ["archive", "restore", "unarchive"],
     settings: [],

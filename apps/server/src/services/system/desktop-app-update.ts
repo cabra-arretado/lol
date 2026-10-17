@@ -53,29 +53,35 @@ export function createDesktopAppUpdateService(args: {
     }
   };
   let lastResult: SystemAppUpdateStatus["lastResult"] = null;
-  const initialized = mutateManagedJsonFile({
-    path,
-    read: readState,
-    mutate: (state) => {
-      if (state.pending === null) return state;
-      const updated = state.pending.to.version === args.currentVersion;
-      return {
-        ...state,
-        pending: null,
-        lastResult: {
-          ...state.pending,
-          finishedAt: new Date().toISOString(),
-          message: updated
-            ? null
-            : `bb started ${args.currentVersion} instead of ${state.pending.to.version}.`,
-          outcome: updated ? ("updated" as const) : ("failed" as const),
-          phase: updated ? null : ("startup" as const),
-        },
-      };
-    },
-  }).then((state) => {
-    lastResult = state.lastResult;
-  });
+  const initialized = readState()
+    .then((existing) =>
+      existing.pending === null
+        ? existing
+        : mutateManagedJsonFile({
+            path,
+            read: readState,
+            mutate: (state) => {
+              if (state.pending === null) return state;
+              const updated = state.pending.to.version === args.currentVersion;
+              return {
+                ...state,
+                pending: null,
+                lastResult: {
+                  ...state.pending,
+                  finishedAt: new Date().toISOString(),
+                  message: updated
+                    ? null
+                    : `bb started ${args.currentVersion} instead of ${state.pending.to.version}.`,
+                  outcome: updated ? ("updated" as const) : ("failed" as const),
+                  phase: updated ? null : ("startup" as const),
+                },
+              };
+            },
+          }),
+    )
+    .then((state) => {
+      lastResult = state.lastResult;
+    });
   void initialized.catch((error: unknown) => {
     args.logger.warn({ error }, "Could not read desktop update state");
   });
