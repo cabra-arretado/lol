@@ -1036,7 +1036,7 @@ skill.
 
 The builtin File Editor plugin (`monaco-editor`) opens files in Monaco. Its
 `vimMode` setting (default `false`) turns on Vim keybindings, with a mode line
-under the editor and `:w` to save:
+under the editor and `:w`, `:wq`, and `:x` to save:
 
 ```bash
 bb plugin config monaco-editor set vimMode true

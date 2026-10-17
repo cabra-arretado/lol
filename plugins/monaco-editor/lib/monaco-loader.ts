@@ -1,49 +1,83 @@
 import type * as MonacoNs from "monaco-editor";
+import {
+  SAVE_EX_COMMANDS,
+  createVimSaveRegistry,
+  type ExAdapter,
+} from "./vim-save-commands.js";
 
-
-export interface VimModeHandle {
+interface VimModeHandle {
   dispose(): void;
 }
 
-export type InitVimMode = (
-  editor: MonacoNs.editor.IStandaloneCodeEditor,
-  statusNode: HTMLElement,
-) => VimModeHandle;
-
-interface LoadedEditor {
-  monaco: typeof MonacoNs;
-  initVimMode: InitVimMode;
-  defineExCommand: (name: string, shorthand: string, run: () => void) => void;
-}
-
-let bootPromise: Promise<LoadedEditor> | null = null;
-
-export async function loadMonaco(baseUrl: string): Promise<typeof MonacoNs> {
-  return (await loadEditor(baseUrl)).monaco;
-}
-
-export async function loadVimMode(
-  baseUrl: string,
-): Promise<Pick<LoadedEditor, "initVimMode" | "defineExCommand">> {
-  return loadEditor(baseUrl);
-}
-
-function loadEditor(baseUrl: string): Promise<LoadedEditor> {
-  bootPromise ??= boot(baseUrl);
-  return bootPromise;
-}
-
-interface MonacoModule {
-  monaco?: typeof MonacoNs;
-  initVimMode?: InitVimMode;
-  VimMode?: {
+interface VimModule {
+  initVimMode: (
+    editor: MonacoNs.editor.IStandaloneCodeEditor,
+    statusNode: HTMLElement,
+  ) => VimModeHandle;
+  VimMode: {
     Vim: {
-      defineEx(name: string, shorthand: string, run: () => void): void;
+      defineEx(
+        name: string,
+        shorthand: string,
+        run: (adapter: ExAdapter) => void,
+      ): void;
     };
   };
 }
 
-async function boot(baseUrl: string): Promise<LoadedEditor> {
+interface EditorModule extends Partial<VimModule> {
+  monaco?: typeof MonacoNs;
+}
+
+let bootPromise: Promise<EditorModule> | null = null;
+let saveCommandsDefined = false;
+const saveRegistry = createVimSaveRegistry();
+
+export async function loadMonaco(baseUrl: string): Promise<typeof MonacoNs> {
+  const { monaco } = await loadEditorModule(baseUrl);
+  if (!monaco) {
+    throw new Error("the Monaco bundle did not expose its API");
+  }
+  return monaco;
+}
+
+export async function attachVimMode(
+  baseUrl: string,
+  editor: MonacoNs.editor.IStandaloneCodeEditor,
+  statusNode: HTMLElement,
+  save: () => void,
+): Promise<VimModeHandle> {
+  const { initVimMode, VimMode } = await loadEditorModule(baseUrl);
+  if (!initVimMode || !VimMode) {
+    throw new Error("the Monaco bundle did not include Vim mode");
+  }
+  if (!saveCommandsDefined) {
+    for (const [name, shorthand] of SAVE_EX_COMMANDS) {
+      VimMode.Vim.defineEx(name, shorthand, (adapter) =>
+        saveRegistry.saveFor(adapter),
+      );
+    }
+    saveCommandsDefined = true;
+  }
+  const unregister = saveRegistry.register(editor, save);
+  const vim = initVimMode(editor, statusNode);
+  return {
+    dispose() {
+      unregister();
+      vim.dispose();
+    },
+  };
+}
+
+function loadEditorModule(baseUrl: string): Promise<EditorModule> {
+  bootPromise ??= boot(baseUrl).catch((error: unknown) => {
+    bootPromise = null;
+    throw error;
+  });
+  return bootPromise;
+}
+
+async function boot(baseUrl: string): Promise<EditorModule> {
   await injectStylesheet(`${baseUrl}/editor.css`);
 
   (globalThis as { MonacoEnvironment?: unknown }).MonacoEnvironment = {
@@ -56,20 +90,11 @@ async function boot(baseUrl: string): Promise<LoadedEditor> {
       ),
   };
 
-  const loaded: MonacoModule = await import(
+  const loaded: EditorModule = await import(
     /* @vite-ignore */ `${baseUrl}/editor.js`
   );
-  const { monaco, initVimMode, VimMode } = loaded;
-  if (!monaco || !initVimMode || !VimMode) {
-    throw new Error("the Monaco bundle did not expose its API");
-  }
-  registerOccurrenceHighlighting(monaco);
-  return {
-    monaco,
-    initVimMode,
-    defineExCommand: (name, shorthand, run) =>
-      VimMode.Vim.defineEx(name, shorthand, run),
-  };
+  if (loaded.monaco) registerOccurrenceHighlighting(loaded.monaco);
+  return loaded;
 }
 
 function registerOccurrenceHighlighting(monaco: typeof MonacoNs): void {

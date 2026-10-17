@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
 import type { PluginFileOpenerProps } from "@get-bb/plugin-sdk/app";
@@ -25,8 +31,15 @@ const editor = vi.hoisted(() => ({
 const create = vi.hoisted(() => vi.fn(() => editor));
 const vim = vi.hoisted(() => ({
   dispose: vi.fn(),
-  initVimMode: vi.fn(),
-  defineExCommand: vi.fn<(name: string, shorthand: string, run: () => void) => void>(),
+  attachVimMode:
+    vi.fn<
+      (
+        baseUrl: string,
+        editor: unknown,
+        statusNode: HTMLElement,
+        save: () => void,
+      ) => Promise<{ dispose(): void }>
+    >(),
 }));
 vi.mock("./lib/monaco-loader.js", () => ({
   loadMonaco: async () => ({
@@ -34,10 +47,7 @@ vi.mock("./lib/monaco-loader.js", () => ({
     KeyMod: { CtrlCmd: 1 },
     KeyCode: { KeyS: 2 },
   }),
-  loadVimMode: async () => ({
-    initVimMode: vim.initVimMode,
-    defineExCommand: vim.defineExCommand,
-  }),
+  attachVimMode: vim.attachVimMode,
   overflowWidgetsNode: () => document.body,
   setOverflowWidgetsTheme: vi.fn(),
 }));
@@ -85,7 +95,7 @@ const range = (startLineNumber: number, endLineNumber = startLineNumber) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vim.initVimMode.mockReturnValue({ dispose: vim.dispose });
+  vim.attachVimMode.mockResolvedValue({ dispose: vim.dispose });
   editor.getValue.mockReturnValue("Edited on a phone");
   editor.setValue.mockImplementation((content) => {
     editor.getValue.mockReturnValue(content);
@@ -283,7 +293,10 @@ it("does not offer an old file's draft when its disk reload finishes after navig
     .mockReturnValueOnce(file)
     .mockReturnValueOnce(pendingRead)
     .mockReturnValue(file);
-  const nextEditor = { ...editor, setValue: vi.fn<(content: string) => void>() };
+  const nextEditor = {
+    ...editor,
+    setValue: vi.fn<(content: string) => void>(),
+  };
   create.mockReturnValueOnce(editor).mockReturnValueOnce(nextEditor);
   const slot = renderSlot(registration, base, {
     rpc: {
@@ -425,15 +438,21 @@ it("does not apply a stale target cleared during loading", async () => {
 
 it("leaves Vim keybindings off unless the vimMode setting is on", async () => {
   renderSlot(registration, base, {
-    rpc: { assets: () => ({ baseUrl: "/assets", expiresAtMs: 99999 }), read: () => file },
+    rpc: {
+      assets: () => ({ baseUrl: "/assets", expiresAtMs: 99999 }),
+      read: () => file,
+    },
     settings: { vimMode: false },
   });
   await waitFor(() => expect(create).toHaveBeenCalledOnce());
-  expect(vim.initVimMode).not.toHaveBeenCalled();
+  expect(vim.attachVimMode).not.toHaveBeenCalled();
 });
 
-it("attaches Vim mode to the editor, maps :w to save, and detaches on unmount", async () => {
-  const write = vi.fn(async () => ({ outcome: "written" as const, sha256: "h2" }));
+it("attaches Vim mode to the editor, saves through it, and detaches on unmount", async () => {
+  const write = vi.fn(async () => ({
+    outcome: "written" as const,
+    sha256: "h2",
+  }));
   const view = renderSlot(registration, base, {
     rpc: {
       assets: () => ({ baseUrl: "/assets", expiresAtMs: 99999 }),
@@ -442,14 +461,29 @@ it("attaches Vim mode to the editor, maps :w to save, and detaches on unmount", 
     },
     settings: { vimMode: true },
   });
-  await waitFor(() => expect(vim.initVimMode).toHaveBeenCalledOnce());
-  expect(vim.initVimMode.mock.calls[0]![0]).toBe(editor);
-  expect(vim.initVimMode.mock.calls[0]![1]).toBeInstanceOf(HTMLElement);
-  const [name, shorthand, run] = vim.defineExCommand.mock.calls[0]!;
-  expect([name, shorthand]).toEqual(["write", "w"]);
+  await waitFor(() => expect(vim.attachVimMode).toHaveBeenCalledOnce());
+  const [baseUrl, attachedEditor, statusNode, save] =
+    vim.attachVimMode.mock.calls[0]!;
+  expect(baseUrl).toBe("/assets");
+  expect(attachedEditor).toBe(editor);
+  expect(statusNode).toBeInstanceOf(HTMLElement);
   act(() => editor.onDidChangeModelContent.mock.calls[0]![0]());
-  act(() => run());
+  act(() => save());
   await waitFor(() => expect(write).toHaveBeenCalledOnce());
   view.unmount();
   expect(vim.dispose).toHaveBeenCalledOnce();
+});
+
+it("keeps the plain editor and shows a note when Vim mode fails to load", async () => {
+  vim.attachVimMode.mockRejectedValue(new Error("bundle missing vim"));
+  renderSlot(registration, base, {
+    rpc: {
+      assets: () => ({ baseUrl: "/assets", expiresAtMs: 99999 }),
+      read: () => file,
+    },
+    settings: { vimMode: true },
+  });
+  await screen.findByText("Vim mode could not be loaded");
+  expect(create).toHaveBeenCalledOnce();
+  expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
 });

@@ -28,6 +28,11 @@ const monacoEsm = path.join(
 const editor = await esbuild.build({
   ...shared,
   alias: {
+    "monaco-vim": path.join(
+      path.dirname(require.resolve("monaco-vim/package.json")),
+      "dist",
+      "index.mjs",
+    ),
     "monaco-editor/esm/vs/editor/editor.api": path.join(
       monacoEsm,
       "editor",
@@ -85,6 +90,12 @@ const missing = [
   [
     "editor contributions",
     () => inputs.some((i) => i.includes("editor/contrib/")),
+  ],
+  [
+    "monaco-vim ES module build",
+    () =>
+      inputs.some((i) => i.includes("monaco-vim/dist/index.mjs")) &&
+      !inputs.some((i) => i.includes("monaco-vim.umd")),
   ],
   ["find widget", () => output.includes("find-widget")],
   ["folding", () => output.includes("foldRecursively")],
