@@ -1,5 +1,8 @@
 <p align="center">
-  <img alt="lol" src="assets/bb-logo.png" width="128">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/bb-logo-white.png">
+    <img alt="lol" src="assets/bb-logo.png" width="128">
+  </picture>
 </p>
 
 # lol
@@ -10,7 +13,7 @@ It is a fork of [get-bb/bb](https://github.com/get-bb/bb), kept close to
 upstream so security fixes stay easy to merge.
 
 Your notes, tasks, repositories, and conversations stay on your computer. Each
-agent provider (Claude Code, Codex, Kiro) is optional and uses the CLI you
+agent provider (Claude Code, Codex, and Kiro through ACP) is optional and uses the CLI you
 already have authenticated.
 
 ## How lol differs from bb
@@ -30,7 +33,6 @@ already have authenticated.
 - **Todos.** Tasks can hold todos as real entities, with card progress and a
   Todos view (`bb tasks todo` in the CLI).
 - **Vim mode.** The Monaco editor has an opt-in `vimMode` setting.
-- **Kiro.** Kiro CLI is available as an ACP provider.
 
 See [Personal edition](docs/configuration.md#personal-edition) for exact
 behavior, and [GOAL.md](GOAL.md) for the roadmap.
@@ -46,9 +48,8 @@ pnpm exec turbo run dev --filter=@bb/desktop   # Electron shell, second terminal
 pnpm desktop                              # packaged-mode desktop app
 ```
 
-`pnpm dev` keeps data under `~/.lol-dev/`. Do not run `desktop:build`; it
-publishes to the upstream release feed. To package locally without
-publishing, use `pnpm exec turbo run package --filter=@bb/desktop`.
+`pnpm dev` keeps data under `~/.lol-dev/`. To build an unpacked macOS app
+(Apple Silicon), use `pnpm exec turbo run package --filter=@bb/desktop`.
 
 More: [Repository overview](docs/repository-overview.md),
 [System overview](docs/system-overview.md),
