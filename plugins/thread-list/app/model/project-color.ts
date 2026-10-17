@@ -14,3 +14,17 @@ const PROJECT_COLOR_HUES: Record<SidebarProjectColor, number> = {
 export function projectColorCss(color: SidebarProjectColor): string {
   return `oklch(0.68 0.17 ${PROJECT_COLOR_HUES[color]})`;
 }
+
+const PROJECT_COLORS = Object.keys(PROJECT_COLOR_HUES) as SidebarProjectColor[];
+
+export function resolveProjectColor(
+  projectId: string,
+  chosen: SidebarProjectColor | null,
+): SidebarProjectColor {
+  if (chosen !== null) return chosen;
+  let hash = 0;
+  for (const char of projectId) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return PROJECT_COLORS[hash % PROJECT_COLORS.length] as SidebarProjectColor;
+}

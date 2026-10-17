@@ -337,7 +337,7 @@ describe("ProjectDetailSettingsView", () => {
     );
   });
 
-  it("clears the sidebar color", async () => {
+  it("resets the sidebar color to automatic", async () => {
     stubSidebarBootstrapFetch([
       { hostId: "host_primary", path: "/Users/me/bb" },
     ]);
@@ -346,7 +346,7 @@ describe("ProjectDetailSettingsView", () => {
     );
 
     renderView();
-    fireEvent.click(await screen.findByRole("radio", { name: "No color" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Automatic" }));
     await waitFor(() =>
       expect(sdk.projects.update).toHaveBeenCalledWith({
         projectId: "proj_bb",

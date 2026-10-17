@@ -395,7 +395,7 @@ export function ProjectDetailSettingsView() {
 
         <SettingsSection
           title="Sidebar color"
-          description="Marks this project in the sidebar so it is easy to tell apart."
+          description="Marks this project in the sidebar so it is easy to tell apart. Automatic picks a color for you; the sidebar view menu can hide project colors."
         >
           <div
             role="radiogroup"
@@ -406,7 +406,7 @@ export function ProjectDetailSettingsView() {
               type="button"
               role="radio"
               aria-checked={project.color === null}
-              aria-label="No color"
+              aria-label="Automatic"
               disabled={updateProject.isPending}
               className={cn(
                 "inline-flex size-6 items-center justify-center rounded-full border border-subtle-foreground/60 text-subtle-foreground outline-none ring-sidebar-ring focus-visible:ring-2",

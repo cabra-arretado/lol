@@ -563,7 +563,7 @@ export function registerProjectCommands(
     .option("--name <name>", "Set the project name")
     .option(
       "--color <color>",
-      `Set the sidebar color (${PROJECT_COLORS.join(", ")}, or none to clear)`,
+      `Set the sidebar color (${PROJECT_COLORS.join(", ")}, or none for automatic)`,
     )
     .option("--json", "Print machine-readable JSON output")
     .action(

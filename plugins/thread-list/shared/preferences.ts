@@ -96,6 +96,12 @@ export const preferenceDefinitions = {
     "Show each thread's agent provider icon before its title.",
     null,
   ),
+  showProjectColors: definePreference(
+    z.boolean(),
+    true,
+    "Show a color dot before each project in the sidebar; projects without a chosen color get an automatic one.",
+    null,
+  ),
   threadLifecycles: definePreference(
     z
       .array(z.enum(["active", "archived"]))
