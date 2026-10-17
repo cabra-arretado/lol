@@ -18,16 +18,21 @@ panel's file search, and `bb thread open`.
   decision. Undo stays available until you edit, save, reload, or leave the file.
 - **Find in file** with <kbd>⌘F</kbd>, plus Monaco's usual editing: multiple
   cursors, block selection, bracket matching, code folding.
+- **Vim mode** (off by default). Turn on **Vim mode** in the plugin's settings,
+  or run `bb plugin config monaco-editor set vimMode true`, for Vim normal,
+  insert, and visual modes, a mode line under the editor, and `:w`, `:wq`,
+  and `:x` to save. `:q` and `ZZ` are not wired, and Vim keys such as
+  <kbd>Ctrl+F</kbd> take over from Monaco's defaults in normal mode.
 - **Syntax highlighting** for ~86 common file types.
 - **File tree.** Toggle it from the file bar to browse the project, filter by
   path, expand and collapse directories, and jump to another file. It opens
   with the current file revealed. Right-click any row to copy its absolute
   path, relative path, or filename.
 - **Quick palette commands.** Open the quick palette (<kbd>⌘⇧P</kbd>) and
-  type "fold", "sort", or "copy" to reach *fold level 1–5*, *fold
-  recursively*, *unfold all*, *unfold recursively*, *unfold at cursor*,
-  *sort selected lines ascending/descending*, and *copy the path / relative
-  path of the current file*. The sort rows appear only with a multi-line
+  type "fold", "sort", or "copy" to reach _fold level 1–5_, _fold
+  recursively_, _unfold all_, _unfold recursively_, _unfold at cursor_,
+  _sort selected lines ascending/descending_, and _copy the path / relative
+  path of the current file_. The sort rows appear only with a multi-line
   selection, and every row acts on the Monaco tab you last worked in.
 - **Follows your theme,** including light/dark switches and custom palettes.
 
@@ -61,7 +66,7 @@ emitted at all. `lib/monaco-loader.ts` loads the built files from a
 `monaco-bundle/editor.js` is the entry: Monaco's own `editor.main`, which is
 the API plus its contribution modules (find, folding, word navigation,
 sorting, …) and every Monarch grammar. What it leaves out is the language
-*services* for CSS, HTML, JSON, and TypeScript — completion and type checking
+_services_ for CSS, HTML, JSON, and TypeScript — completion and type checking
 this plugin has no use for. esbuild proves what is reachable, so the result is
 4.6 MB rather than the 24 MB of Monaco's prebuilt tree. Monaco's icon webfont
 is inlined as a data URL, so the bundle stays the three files the loader

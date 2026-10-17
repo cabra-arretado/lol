@@ -3,6 +3,7 @@ import {
   definePluginApp,
   experimental_useCodeTheme,
   useRpc,
+  useSettings,
   type PluginFileOpenerProps,
 } from "@get-bb/plugin-sdk/app";
 import type * as MonacoNs from "monaco-editor";
@@ -11,6 +12,7 @@ import type { rpcContract } from "./server.js";
 import { CLAIMED_EXTENSIONS, languageForPath } from "./lib/languages.js";
 import {
   loadMonaco,
+  attachVimMode,
   overflowWidgetsNode,
   setOverflowWidgetsTheme,
 } from "./lib/monaco-loader.js";
@@ -70,6 +72,8 @@ function MonacoFileOpener({
   const codeTheme = experimental_useCodeTheme();
   const codeThemeRef = useRef(codeTheme);
   codeThemeRef.current = codeTheme;
+  const vimEnabled = useSettings().values?.vimMode === true;
+  const vimStatusRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const conflictNoticeRef = useRef<HTMLDivElement | null>(null);
   const monacoRef = useRef<typeof MonacoNs | null>(null);
@@ -261,6 +265,40 @@ function MonacoFileOpener({
   }, [writeEditorContent]);
 
   useEffect(() => {
+    const editor = editorRef.current;
+    const statusNode = vimStatusRef.current;
+    if (!vimEnabled || status.kind !== "ready" || !editor || !statusNode) {
+      return;
+    }
+    let disposed = false;
+    let vim: { dispose(): void } | null = null;
+    void (async () => {
+      try {
+        const { baseUrl } = await rpc.call("assets");
+        const attached = await attachVimMode(
+          baseUrl,
+          editor,
+          statusNode,
+          () => void saveRef.current(),
+        );
+        if (disposed) attached.dispose();
+        else vim = attached;
+      } catch {
+        if (!disposed) statusNode.textContent = "Vim mode could not be loaded";
+      }
+    })();
+    return () => {
+      disposed = true;
+      try {
+        vim?.dispose();
+      } finally {
+        vim = null;
+        statusNode.textContent = "";
+      }
+    };
+  }, [vimEnabled, status.kind, activePath, rpc]);
+
+  useEffect(() => {
     let disposed = false;
     setStatus({ kind: "loading" });
     setIsRefreshing(false);
@@ -419,6 +457,10 @@ function MonacoFileOpener({
         status={status}
       />
       <div ref={containerRef} className="min-h-0 flex-1" />
+      <div
+        ref={vimStatusRef}
+        className="shrink-0 border-t border-border px-4 py-0.5 font-mono text-xs text-muted-foreground empty:hidden"
+      />
     </div>
   );
 }

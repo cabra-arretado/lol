@@ -126,6 +126,16 @@ async function ensureMonacoBundleDir(
 export default async function plugin(bb: BbPluginApi) {
   let assetLease: { baseUrl: string; expiresAtMs: number } | null = null;
 
+  bb.settings.define({
+    vimMode: {
+      type: "boolean",
+      label: "Vim mode",
+      description:
+        "Use Vim keybindings (normal, insert, and visual modes, plus :w to save) in the file editor.",
+      default: false,
+    },
+  });
+
   async function assets() {
     const now = Date.now();
     if (
