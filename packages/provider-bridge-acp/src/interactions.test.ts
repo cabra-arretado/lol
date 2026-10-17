@@ -231,6 +231,22 @@ describe("buildAcpApprovalDecisions", () => {
     ).toEqual(["allow_once", "allow_for_session", "deny"]);
   });
 
+  it("drops the always option when the agent's saved rules are outside bb", () => {
+    expect(
+      buildAcpApprovalDecisions(
+        [
+          { kind: "allow_once" },
+          { kind: "allow_always" },
+          { kind: "reject_once" },
+        ],
+        true,
+      ),
+    ).toEqual(["allow_once", "deny"]);
+    expect(buildAcpApprovalDecisions([{ kind: "allow_always" }], true)).toEqual(
+      ["deny"],
+    );
+  });
+
   it("never returns an empty decision list", () => {
     expect(buildAcpApprovalDecisions([])).toEqual(["deny"]);
   });

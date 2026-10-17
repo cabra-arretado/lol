@@ -322,6 +322,22 @@ describe("acpProviderDeclaration", () => {
     expect(cursor.maintenance?.installation).toBe(true);
   });
 
+  it("launches Kiro V3 with CLI auth and its effortLevel reasoning option", () => {
+    const kiro = KNOWN_ACP_AGENTS.find((agent) => agent.id === "acp-kiro")!;
+    expect(kiro.launch.command).toBe("kiro-cli");
+    expect(kiro.launch.args).toEqual([
+      "acp",
+      "--agent-engine=v3",
+      "--auth-method=cli",
+    ]);
+    expect(kiro.dialect).toBe("kiro");
+    expect(kiro.launch.nativeReasoning?.configId).toBe("effortLevel");
+    const declaration = acpProviderDeclaration(kiro);
+    expect(declaration.experimental_visibility).toBe("installed");
+    expect(declaration.capabilities.fork).toBe("none");
+    expect(RESERVED_ACP_PROVIDER_IDS.has("acp-kiro")).toBe(false);
+  });
+
   it("gives a configured agent honest copy when it names no sign-in command", () => {
     const declaration = acpProviderDeclaration(
       customAcpAgentDefinition({

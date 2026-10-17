@@ -8,6 +8,7 @@ import {
   grokContextUsageFromPromptResult,
   grokContextWindowSizeFromSessionModels,
   resolveAcpDialect,
+  KIRO_ACP_DIALECT,
 } from "./dialect.js";
 import type { AcpToolCallUpdateEvent } from "./wire.js";
 
@@ -38,6 +39,16 @@ describe("resolveAcpDialect", () => {
     expect(resolveAcpDialect({ command: "/usr/local/bin/opencode" })).toBe(
       OPENCODE_ACP_DIALECT,
     );
+  });
+
+  it("selects the Kiro dialect by id and by kiro-cli executable", () => {
+    expect(resolveAcpDialect({ dialectId: "kiro", command: "node" })).toBe(
+      KIRO_ACP_DIALECT,
+    );
+    expect(resolveAcpDialect({ command: "/home/me/.local/bin/kiro-cli" })).toBe(
+      KIRO_ACP_DIALECT,
+    );
+    expect(KIRO_ACP_DIALECT.oneTimeApprovalsOnly).toBe(true);
   });
 
   it("is generic for a dialect id it does not ship", () => {

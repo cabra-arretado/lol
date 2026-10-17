@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { acpProviderDeclaration } from "../declaration.js";
 import { KNOWN_ACP_AGENTS } from "../known-agents.js";
 import { resolveAcpNativeRoots } from "./index.js";
+import { resolveKiroNativeRoots } from "./kiro.js";
 
 let tempRoot: string;
 
@@ -299,6 +300,14 @@ describe("resolveAcpNativeRoots", () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain(
       `dropped the skills root "${path.join(pluginRoot, "skills")}"`,
     );
+  });
+});
+
+describe("kiro", () => {
+  it("indexes no skill roots of its own", async () => {
+    await expect(
+      resolveKiroNativeRoots({ cwd: null, homeDir: tempRoot, env: {} }),
+    ).resolves.toEqual({ skills: [] });
   });
 });
 

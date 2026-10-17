@@ -560,7 +560,7 @@ bb plugin config provider-acp set customAgents '[
 Each entry needs `id` (lowercase letters, digits, and dashes), `displayName`,
 and `command`. bb derives the provider id `acp-<id>`, which never changes once
 a thread has used it. `cursor` is reserved; an entry with an id bb lists only
-where the agent is installed (`opencode`, `omp`, `grok`, `hermes-agent`)
+where the agent is installed (`opencode`, `omp`, `grok`, `hermes-agent`, `kiro`)
 replaces the shipped agent and keeps its `nativeSkillRoots` unless it sets its
 own. Optional fields: `args`, `env`, `cwd`, `modelCli` (CLI model listing and
 selection), `reasoningCli` (launch-time reasoning flags), `nativeReasoning`
