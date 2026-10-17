@@ -201,6 +201,8 @@ export function TasksTopbar({
             </span>
           </span>
         );
+      case "todos":
+        return <span className="whitespace-nowrap font-semibold">Todos</span>;
       case "manage":
         return (
           <span className="flex items-center gap-2">
@@ -293,7 +295,9 @@ export function TasksTopbar({
         </span>
       ) : null}
       <RefreshTasksButton />
-      {route.kind !== "task" && route.kind !== "manage" ? (
+      {route.kind !== "task" &&
+      route.kind !== "manage" &&
+      route.kind !== "todos" ? (
         <Button
           size="sm"
           className="h-7 gap-1.5 max-md:pointer-coarse:h-9"

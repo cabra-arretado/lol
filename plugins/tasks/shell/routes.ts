@@ -9,6 +9,7 @@ export type TasksRoute =
   | { kind: "all" }
   | { kind: "active" }
   | { kind: "manage" }
+  | { kind: "todos" }
   | { kind: "project"; projectId: string; view: TaskViewMode | null }
   | { kind: "task"; taskKey: string };
 
@@ -34,6 +35,7 @@ export function parseTasksRoute(rawSubPath: string): TasksRoute {
   if (head === undefined || head === "all") return { kind: "all" };
   if (head === "active") return { kind: "active" };
   if (head === "manage") return { kind: "manage" };
+  if (head === "todos") return { kind: "todos" };
   if (head === "task") {
     const taskKey = segments[1];
     if (taskKey !== undefined) return { kind: "task", taskKey };
@@ -55,6 +57,8 @@ export function tasksRouteToSubPath(route: TasksRoute): string {
       return "active";
     case "manage":
       return "manage";
+    case "todos":
+      return "todos";
     case "task":
       return `task/${route.taskKey}`;
     case "project":

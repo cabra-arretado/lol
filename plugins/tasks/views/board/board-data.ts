@@ -6,11 +6,15 @@ import {
 } from "../../shell/signal-scheduler.js";
 import { isActiveThread } from "../detail/meta.js";
 
+const TODO_COUNT_BATCH = 500;
+
 export interface BoardCardMeta {
   workingThreads: TaskThread[];
   attachmentCount: number;
   subDone: number;
   subTotal: number;
+  todoDone: number;
+  todoTotal: number;
 }
 
 export interface BoardData {
@@ -25,6 +29,8 @@ export const EMPTY_META: BoardCardMeta = {
   attachmentCount: 0,
   subDone: 0,
   subTotal: 0,
+  todoDone: 0,
+  todoTotal: 0,
 };
 
 export async function fetchBoard(
@@ -78,6 +84,11 @@ export async function fetchBoard(
     }),
   );
 
+  const todoCounts = await todoCountsFor(
+    rpc,
+    topLevel.map((task) => task.id),
+  );
+
   return {
     tasks: topLevel,
     subtasks: tasks.filter((task) => task.parentTaskId !== null),
@@ -90,10 +101,33 @@ export async function fetchBoard(
           attachmentCount: attachmentCounts.get(task.id) ?? 0,
           subDone: subProgress.get(task.id)?.done ?? 0,
           subTotal: subProgress.get(task.id)?.total ?? 0,
+          todoDone: todoCounts.get(task.id)?.done ?? 0,
+          todoTotal: todoCounts.get(task.id)?.total ?? 0,
         },
       ]),
     ),
   };
+}
+
+async function todoCountsFor(
+  rpc: TasksRpc,
+  taskIds: readonly string[],
+): Promise<Map<string, { done: number; total: number }>> {
+  const counts = new Map<string, { done: number; total: number }>();
+  for (let start = 0; start < taskIds.length; start += TODO_COUNT_BATCH) {
+    const result = await rpc
+      .call("todoCounts", {
+        taskIds: taskIds.slice(start, start + TODO_COUNT_BATCH),
+      })
+      .then(
+        (value) => value.counts,
+        () => [],
+      );
+    for (const { taskId, done, total } of result) {
+      counts.set(taskId, { done, total });
+    }
+  }
+  return counts;
 }
 
 async function workingThreadsFor(
@@ -112,7 +146,13 @@ export async function patchBoard(
   current: BoardData,
   signals: readonly TaskSignal[],
 ): Promise<BoardData | null> {
-  if (signals.some((signal) => signal.channel === "projects:changed")) {
+  if (
+    signals.some(
+      (signal) =>
+        signal.channel === "projects:changed" ||
+        signal.channel === "todos:changed",
+    )
+  ) {
     return null;
   }
   const changedIds = signalTaskIds(signals, "tasks:changed");
@@ -144,17 +184,20 @@ export async function patchBoard(
   );
   await Promise.all([
     ...refreshedCards.map(async (task) => {
-      const [workingThreads, attachmentCount] = await Promise.all([
+      const [workingThreads, attachmentCount, todoCounts] = await Promise.all([
         workingThreadsFor(rpc, task.id),
         rpc.call("listAttachments", { taskId: task.id }).then(
           (result) => result.attachments.length,
           () => 0,
         ),
+        todoCountsFor(rpc, [task.id]),
       ]);
       metaByTaskId.set(task.id, {
         ...EMPTY_META,
         workingThreads,
         attachmentCount,
+        todoDone: todoCounts.get(task.id)?.done ?? 0,
+        todoTotal: todoCounts.get(task.id)?.total ?? 0,
       });
     }),
     ...threadIds.map(async (taskId) => {

@@ -800,6 +800,7 @@ export type TasksRpcContract = typeof tasksRpcContract;
 export type Folder = z.infer<typeof folderSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export type Task = z.infer<typeof taskSchema>;
+export type Todo = z.infer<typeof todoSchema>;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type Label = z.infer<typeof labelSchema>;

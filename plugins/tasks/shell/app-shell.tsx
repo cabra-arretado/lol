@@ -15,6 +15,7 @@ import { BoardView } from "../views/board/index.js";
 import { DetailView } from "../views/detail/index.js";
 import { NewTaskDialog } from "../views/manage/new-task-dialog.js";
 import { NewProjectDialog } from "../views/manage/new-project-dialog.js";
+import { TodosView } from "../views/todos/index.js";
 import { ManagePanel } from "../views/manage/manage-panel.js";
 import { EmptyState } from "../components/empty-state.js";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,8 @@ function RouteOutlet({
       return <ListView projectId={null} activeOnly />;
     case "manage":
       return <ManagePanel />;
+    case "todos":
+      return <TodosView />;
     case "task":
       return <TaskRouteView taskKey={route.taskKey} />;
     case "project":
@@ -185,7 +188,10 @@ function TasksAppShellContent({ subPath }: PluginNavPanelProps) {
           onBack={backFromTask}
         />
         <div className="min-h-0 flex-1 overflow-auto">
-          {noProjects && route.kind !== "task" && route.kind !== "manage" ? (
+          {noProjects &&
+          route.kind !== "task" &&
+          route.kind !== "manage" &&
+          route.kind !== "todos" ? (
             <EmptyState
               icon="ListTodo"
               title="No projects yet"
