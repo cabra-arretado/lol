@@ -1,8 +1,13 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  installEgressGuard,
+  loadEgressAllowedHosts,
+} from "@bb/config/egress-guard";
 import { loadHostDaemonStartConfig } from "@bb/config/host-daemon";
 import { loadHostDaemonEntrypointConfig } from "@bb/config/host-daemon-entrypoint";
+import { createLogger } from "@bb/logger";
 import {
   installSafeProcessDiagnostics,
   installSocketTypeOfServiceGuard,
@@ -48,7 +53,21 @@ function reportStartupFailure(args: ReportStartupFailureArgs): void {
   process.stderr.write(`${message}\n`, () => process.exit(1));
 }
 
+function installHostDaemonEgressGuard(): void {
+  const logger = createLogger({
+    component: "host-daemon",
+    dataDir: loadHostDaemonStartConfig({}).dataDir,
+  });
+  installEgressGuard({
+    allowedHosts: loadEgressAllowedHosts(),
+    onBlocked: (attempt) => {
+      logger.warn(attempt, "Blocked outbound connection");
+    },
+  });
+}
+
 async function runHostDaemonEntrypoint(): Promise<void> {
+  installHostDaemonEgressGuard();
   const hostDaemonEntrypointConfig = loadHostDaemonEntrypointConfig();
   const hostDaemonStartConfig = loadHostDaemonStartConfig({});
   if (await hasMachineSuspensionMarker(hostDaemonStartConfig.dataDir)) {

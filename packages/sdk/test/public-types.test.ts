@@ -379,6 +379,7 @@ type ExpectedSystemKey =
   | "replaceMachineEnvironment"
   | "aiServices"
   | "attention"
+  | "capabilities"
   | "cliSkillsStatus"
   | "config"
   | "executionOptions"

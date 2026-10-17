@@ -258,13 +258,13 @@ export function registerCli(
         }),
         "remove-dev-instances": cliCommand({
           summary:
-            "Remove ~/.bb-dev instances whose source checkout no longer exists, stopping servers still running from them",
+            "Remove ~/.lol-dev instances whose source checkout no longer exists, stopping servers still running from them",
           options: {
             machine: MACHINE,
             instance: {
               type: "string",
               description:
-                "Remove only this ~/.bb-dev entry, stopping its dev server first if it is running (default: every instance with a missing checkout)",
+                "Remove only this ~/.lol-dev entry, stopping its dev server first if it is running (default: every instance with a missing checkout)",
             },
             yes: YES,
           },

@@ -37,6 +37,12 @@ export const CORE_COMMAND_GROUPS: readonly CommandGroup[] = [
       m.registerStatusCommand(program, deps.getUrl, deps.getContext),
   ),
   group(
+    "capabilities",
+    () => import("./commands/capabilities.js"),
+    (m) => (program, deps) =>
+      m.registerCapabilitiesCommand(program, deps.getUrl),
+  ),
+  group(
     "settings",
     () => import("./commands/settings.js"),
     (m) => (program, deps) => m.registerSettingsCommands(program, deps.getUrl),

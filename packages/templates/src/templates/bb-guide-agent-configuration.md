@@ -12,7 +12,7 @@ directory. These files shape how agents behave in provider-backed threads.
 
 User instructions (<dataDir>/AGENTS.md):
 
-  Add an AGENTS.md file to the bb data dir (usually ~/.bb/AGENTS.md) to give
+  Add an AGENTS.md file to the bb data dir (usually ~/.lol/AGENTS.md) to give
   every provider-backed thread across all projects default user-level
   instructions. bb reads <dataDir>/AGENTS.md and appends its contents to the
   thread system prompt for all providers when a provider session starts.
@@ -45,7 +45,7 @@ Skills (.bb/skills/):
   bb resolves skills from three sources, in increasing precedence:
 
     plugin     Skills from enabled plugins, including the bundled BB guide.
-    user       <dataDir>/skills (e.g. ~/.bb/skills).
+    user       <dataDir>/skills (e.g. ~/.lol/skills).
     project    <workspace>/.bb/skills.
 
   A project skill overrides a user or plugin skill with the same name. Two

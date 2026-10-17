@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isCapabilityAllowed } from "@bb/domain";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PluginMarketplace } from "@bb/server-contract";
 import { Badge } from "@bb/shared-ui/badge";
@@ -107,51 +108,54 @@ export function MarketplacesSettingsSection() {
       description="bb reads plugin catalogs from these marketplaces. Adding one validates and caches its catalog; it never installs, updates, or runs plugin code."
       bodyClassName="border-0 bg-transparent p-0"
     >
-      <div className="space-y-1.5">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Input
-              value={source}
-              aria-label="Marketplace source"
-              placeholder={SOURCE_PLACEHOLDER}
-              className="h-8 font-mono text-xs"
-              onChange={(event) => setSource(event.target.value)}
-            />
-            {isGitSource ? (
+      {isCapabilityAllowed("remoteMarketplace") ? (
+        <div className="space-y-1.5">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1 space-y-1.5">
               <Input
-                value={subdirectory}
-                aria-label="Marketplace subdirectory"
-                placeholder={SUBDIRECTORY_PLACEHOLDER}
+                value={source}
+                aria-label="Marketplace source"
+                placeholder={SOURCE_PLACEHOLDER}
                 className="h-8 font-mono text-xs"
-                onChange={(event) => setSubdirectory(event.target.value)}
+                onChange={(event) => setSource(event.target.value)}
               />
-            ) : null}
+              {isGitSource ? (
+                <Input
+                  value={subdirectory}
+                  aria-label="Marketplace subdirectory"
+                  placeholder={SUBDIRECTORY_PLACEHOLDER}
+                  className="h-8 font-mono text-xs"
+                  onChange={(event) => setSubdirectory(event.target.value)}
+                />
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={source.trim().length === 0 || add.isPending}
+              onClick={() =>
+                add.mutate({
+                  source: source.trim(),
+                  subdirectory:
+                    isGitSource && subdirectory.trim().length > 0
+                      ? subdirectory.trim()
+                      : null,
+                })
+              }
+            >
+              {add.isPending ? "Adding…" : "Add"}
+            </Button>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            disabled={source.trim().length === 0 || add.isPending}
-            onClick={() =>
-              add.mutate({
-                source: source.trim(),
-                subdirectory:
-                  isGitSource && subdirectory.trim().length > 0
-                    ? subdirectory.trim()
-                    : null,
-              })
-            }
-          >
-            {add.isPending ? "Adding…" : "Add"}
-          </Button>
+          <p className="text-2xs text-subtle-foreground">
+            An https manifest URL, <code>git:&lt;url&gt;[@&lt;ref&gt;]</code>,
+            or <code>path:&lt;directory&gt;</code> on the bb server&rsquo;s
+            machine.
+            {isGitSource
+              ? " Set a subdirectory when the repository keeps marketplace.json outside its root."
+              : null}
+          </p>
         </div>
-        <p className="text-2xs text-subtle-foreground">
-          An https manifest URL, <code>git:&lt;url&gt;[@&lt;ref&gt;]</code>, or{" "}
-          <code>path:&lt;directory&gt;</code> on the bb server&rsquo;s machine.
-          {isGitSource
-            ? " Set a subdirectory when the repository keeps marketplace.json outside its root."
-            : null}
-        </p>
-      </div>
+      ) : null}
 
       <ul className="space-y-2 pt-3">
         {marketplaces.map((marketplace) => (

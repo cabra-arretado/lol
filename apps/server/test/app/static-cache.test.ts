@@ -41,6 +41,9 @@ describe("production static cache headers", () => {
       const rootResponse = await serverApp.app.request("/");
       expect(rootResponse.headers.get("cache-control")).toBe("no-cache");
       expect(rootResponse.headers.get("etag")).toMatch(/^W\/"[0-9a-f]{32}"$/u);
+      expect(rootResponse.headers.get("content-security-policy")).toBe(
+        "img-src 'self' data: blob:; media-src 'self' data: blob:",
+      );
 
       const fallbackResponse = await serverApp.app.request("/threads/thr_123");
       expect(fallbackResponse.headers.get("cache-control")).toBe("no-cache");
@@ -54,6 +57,7 @@ describe("production static cache headers", () => {
       expect(assetResponse.headers.get("cache-control")).toBe(
         "public, max-age=31536000, immutable",
       );
+      expect(assetResponse.headers.get("content-security-policy")).toBeNull();
 
       const brotliAssetResponse = await serverApp.app.request(
         "/assets/index-test.js",

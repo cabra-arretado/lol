@@ -38,6 +38,9 @@ the most-parsed commands ends with the same shape.
   bb status --json
     {project: {id, name} | null, thread: {id, status, title, parentThreadId, environment: {hostId, display} | null} | null, childThreads: [{id, status, title}] | null, pendingTodos, pluginsNeedingAttention: [{id, status}], dataDir}
 
+  bb capabilities --json
+    {edition: "personal", capabilities: [{id, state: "allowed" | "denied", description}]}
+
   bb thread list --json
     [{id, projectId, environmentId, providerId, title, status, parentThreadId, sectionId, visibility, archivedAt, pinnedAt, createdAt, updatedAt, activity}]    (bare array; title can be null)
 

@@ -193,6 +193,7 @@ async function startIntegrationServer(
     featureFlags: defaultFeatureFlags,
     hostDaemonPort: 3001,
     inheritedSkillsRootPaths: [],
+    isCapabilityAllowed: () => true,
     marketplaceUrl: "https://marketplace.invalid/marketplace.json",
     appUrl: "https://bb.example.test",
     serverPort: 0,

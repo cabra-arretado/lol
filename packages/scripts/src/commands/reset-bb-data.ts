@@ -82,7 +82,7 @@ export function renderHelpText(): string {
     --yes   Skip the interactive confirmation prompt
 
   ${dim("Notes")}
-    Removes bb-managed state directories (${dim("~/.bb")}, ${dim("~/.bb-dev/<checkout-instance>")}).
+    Removes bb-managed state directories (${dim("~/.lol")}, ${dim("~/.lol-dev/<checkout-instance>")}).
     Does not touch external provider config managed by other tools.
     Production resets respect BB_DATA_DIR. Development resets always target this checkout's dev data directory.
 \n`;

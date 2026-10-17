@@ -23,6 +23,7 @@ import type {
   SystemAppUpdateStatus,
   SystemCliCommandStatus,
   SystemAttentionResponse,
+  SystemCapabilitiesResponse,
   SystemConfigReloadResponse,
   SystemConfigResponse,
   SystemMobileAppReleasesResponse,
@@ -49,6 +50,10 @@ import {
   signalRequestArgs,
   type CreateSdkAreaArgs,
 } from "./common.js";
+
+export interface SystemCapabilitiesArgs {
+  signal?: AbortSignal;
+}
 
 export interface SystemAttentionArgs {
   signal?: AbortSignal;
@@ -96,6 +101,7 @@ export interface SystemVoiceTranscriptionArgs {
   signal?: AbortSignal;
 }
 
+export type SystemCapabilitiesResult = SystemCapabilitiesResponse;
 export type SystemAttentionResult = SystemAttentionResponse;
 export type SystemConfigResult = SystemConfigResponse;
 export type SystemAiServicesResult = SystemAiServicesResponse;
@@ -170,6 +176,9 @@ export interface SystemArea {
   ): Promise<MachineEnvironmentList>;
   aiServices(args?: SystemAiServicesArgs): Promise<SystemAiServicesResult>;
   attention(args?: SystemAttentionArgs): Promise<SystemAttentionResult>;
+  capabilities(
+    args?: SystemCapabilitiesArgs,
+  ): Promise<SystemCapabilitiesResult>;
   config(args?: SystemConfigArgs): Promise<SystemConfigResult>;
   executionOptions(
     args?: SystemExecutionOptionsArgs,
@@ -292,6 +301,14 @@ export function createSystemArea(args: CreateSdkAreaArgs): SystemArea {
     async replaceMachineEnvironment(input) {
       return transport.readJson(
         transport.api.v1.settings["machine-environment"].$put({ json: input }),
+      );
+    },
+    async capabilities(input) {
+      return transport.readJson(
+        transport.api.v1.system.capabilities.$get(
+          {},
+          ...signalRequestArgs(input?.signal),
+        ),
       );
     },
     async attention(input) {

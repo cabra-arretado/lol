@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import type { ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { isCapabilityAllowed } from "@bb/domain";
 import { relayDesktopAppUpdates } from "@bb/config/desktop-app-update";
 import { spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -3918,6 +3919,7 @@ const shimOutput: ShimOutput = {
 export function shouldRunSourceAppUpdateShim(cliArgs: string[]): boolean {
   const parsed = parseLauncherArgs(cliArgs);
   return (
+    isCapabilityAllowed("inAppUpdate") &&
     parsed.options.noInAppUpdates !== true &&
     !parsed.options.help &&
     resolveBbAppCommand(parsed.positionals).kind === "start"
@@ -4108,7 +4110,9 @@ export async function runBbApp(
   if (
     shouldRunNpmAppUpdateShim({
       options,
-      enabled: parsedArgs.options.noInAppUpdates !== true,
+      enabled:
+        isCapabilityAllowed("inAppUpdate") &&
+        parsedArgs.options.noInAppUpdates !== true,
       runtime,
       underShim: underAppUpdateShim,
     })

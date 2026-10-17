@@ -35,7 +35,7 @@ Paste the actual output verbatim (terminal output, log lines, HTTP responses, `b
 
 ### 5. Evidence
 
-- Logs from `~/.bb/logs/` (or the dev data dir printed by `pnpm dev`), trimmed to the relevant window.
+- Logs from `~/.lol/logs/` (or the dev data dir printed by `pnpm dev`), trimmed to the relevant window.
 - Thread ids (`thr_…`), project ids, environment ids when relevant. They are primary keys and let us query the database directly.
 - If you cite code, use a permalink to a commit: `https://github.com/get-bb/bb/blob/<sha>/<path>#L<n>-L<m>`. Branch links rot.
 - If you measured something (memory, timings, counts), say how.

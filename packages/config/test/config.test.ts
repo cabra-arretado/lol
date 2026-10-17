@@ -78,7 +78,7 @@ describe("common config", () => {
         },
         homeDir: "/Users/tester",
       }).BB_DATA_DIR,
-    ).toBe(path.normalize("/Users/tester/.bb"));
+    ).toBe(path.normalize("/Users/tester/.lol"));
   });
 
   it("requires repoRoot or BB_DATA_DIR for development data dir resolution", () => {
@@ -104,7 +104,7 @@ describe("common config", () => {
         homeDir,
         repoRoot,
       }).BB_DATA_DIR,
-    ).toBe(path.normalize("/Users/tester/.bb-dev/src-bb-9039de53a76a"));
+    ).toBe(path.normalize("/Users/tester/.lol-dev/src-bb-9039de53a76a"));
   });
 
   it("expands home-directory overrides for BB_DATA_DIR", () => {
@@ -159,7 +159,7 @@ describe("data-dir helpers", () => {
   it("expands a bare home-directory override", () => {
     expect(
       resolveConfiguredDataDir({
-        defaultDataDir: path.join(os.homedir(), ".bb"),
+        defaultDataDir: path.join(os.homedir(), ".lol"),
         env: {
           BB_DATA_DIR: "~",
         },
@@ -171,7 +171,7 @@ describe("data-dir helpers", () => {
   it("rejects whitespace-only data dir overrides", () => {
     expect(() =>
       resolveConfiguredDataDir({
-        defaultDataDir: path.join(os.homedir(), ".bb"),
+        defaultDataDir: path.join(os.homedir(), ".lol"),
         env: {
           BB_DATA_DIR: " ",
         },
@@ -191,7 +191,7 @@ describe("data-dir helpers", () => {
         mode: "dev",
         repoRoot,
       }),
-    ).toBe(path.normalize("/Users/tester/.bb-dev/src-bb-9039de53a76a"));
+    ).toBe(path.normalize("/Users/tester/.lol-dev/src-bb-9039de53a76a"));
   });
 
   it("keeps the legacy fallback label for degenerate checkout labels", () => {
@@ -202,7 +202,7 @@ describe("data-dir helpers", () => {
         mode: "dev",
         repoRoot: "/Users/tester/---",
       }),
-    ).toBe(path.normalize("/Users/tester/.bb-dev/worktree-41987f975862"));
+    ).toBe(path.normalize("/Users/tester/.lol-dev/worktree-41987f975862"));
   });
 });
 
@@ -372,14 +372,14 @@ describe("consumer-specific config", () => {
     expect(serverConfig.BB_SERVER_BIND_HOST).toBe("127.0.0.1");
   });
 
-  it("honors an explicit wildcard server bind host", () => {
-    const serverConfig = loadServerConfig({
-      env: createServerRuntimeEnv({
-        BB_SERVER_BIND_HOST: "0.0.0.0",
+  it("refuses a wildcard server bind host in the personal edition", () => {
+    expect(() =>
+      loadServerConfig({
+        env: createServerRuntimeEnv({
+          BB_SERVER_BIND_HOST: "0.0.0.0",
+        }),
       }),
-    });
-
-    expect(serverConfig.BB_SERVER_BIND_HOST).toBe("0.0.0.0");
+    ).toThrow(/nonLoopbackBind/);
   });
 
   it("rejects an unsupported server bind host", () => {
@@ -626,8 +626,8 @@ describe("consumer-specific config", () => {
       },
     });
 
-    expect(cliConfig.BB_SERVER_URL).toBe("http://127.0.0.1:38886");
-    expect(cliConfig.BB_HOST_DAEMON_PORT).toBe(38887);
+    expect(cliConfig.BB_SERVER_URL).toBe("http://127.0.0.1:38986");
+    expect(cliConfig.BB_HOST_DAEMON_PORT).toBe(38987);
   });
 
   it("lets explicit CLI env overrides win over NODE_ENV-selected defaults", () => {
@@ -718,14 +718,24 @@ describe("consumer-specific config", () => {
 
     const explicitViteDevConfig = loadViteDevConfig({
       env: {
-        BB_DEV_APP_HOST: "0.0.0.0",
+        BB_DEV_APP_HOST: "localhost",
         BB_DEV_APP_PORT: "4173",
         BB_SERVER_PORT: "4444",
         NODE_ENV: "development",
       },
     });
 
-    expect(explicitViteDevConfig.appHost).toBe("0.0.0.0");
+    expect(explicitViteDevConfig.appHost).toBe("localhost");
+    expect(() =>
+      loadViteDevConfig({
+        env: {
+          BB_DEV_APP_HOST: "0.0.0.0",
+          BB_DEV_APP_PORT: "4173",
+          BB_SERVER_PORT: "4444",
+          NODE_ENV: "development",
+        },
+      }),
+    ).toThrow(/nonLoopbackBind/);
   });
 
   it("requires the app dev port for Vite dev config", () => {

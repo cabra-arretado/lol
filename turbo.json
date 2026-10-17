@@ -18,31 +18,6 @@
       "dependsOn": ["topo"],
       "passThroughEnv": ["DISPLAY"]
     },
-    "@bb/web#build": {
-      "dependsOn": ["topo"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/server/src/generated/bb-official-marketplace/marketplace.json",
-        "$TURBO_ROOT$/plugins/*/icons/*.svg",
-        "$TURBO_ROOT$/plugins/*/*.svg",
-        "$TURBO_ROOT$/CHANGELOG.md",
-        "$TURBO_ROOT$/changelog-metadata.ts",
-        "$TURBO_ROOT$/changelog-parser.ts",
-        "$TURBO_ROOT$/apps/web/package.json",
-        "$TURBO_ROOT$/apps/web/src/**",
-        "$TURBO_ROOT$/apps/web/tsconfig.json",
-        "$TURBO_ROOT$/apps/web/vite.config.ts",
-        "$TURBO_ROOT$/assets/bb-logo.svg",
-        "$TURBO_ROOT$/packages/shared-ui/src/**",
-        "$TURBO_ROOT$/packages/tsconfig/*.json",
-        "$TURBO_ROOT$/plugins/plugin-api-docs/src/**",
-        "$TURBO_ROOT$/pnpm-lock.yaml",
-        "$TURBO_ROOT$/pnpm-workspace.yaml",
-        "$TURBO_ROOT$/turbo.json"
-      ],
-      "env": ["CLOUDFLARE_ENV", "VITE_POSTHOG_KEY", "VITE_POSTHOG_HOST"],
-      "outputs": ["dist/**"]
-    },
     // Mirrors "build" but also caches bundle-stats.json, which the
     // bb:bundle-stats Vite plugin writes beside dist for the boot-payload
     // budget check. Without it a cache hit would leave CI checking a stale
@@ -61,20 +36,6 @@
         "$TURBO_ROOT$/plugins/theme-preview/taxonomy.ts",
         "$TURBO_ROOT$/vitest*.ts"
       ]
-    },
-    "@bb/demo-server#test": {
-      "env": ["VITEST_MAX_WORKERS"],
-      "dependsOn": ["@bb/demo-server#build", "topo"]
-    },
-    "@bb/demo-server#build": {
-      "dependsOn": ["@bb/app#build", "bb-plugin-thread-list#prepare:bundled"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/plugins/provider-codex/icons/codex.svg",
-        "$TURBO_ROOT$/plugins/provider-claude-code/icons/claude-code.svg",
-        "$TURBO_ROOT$/plugins/provider-pi/icons/pi.svg"
-      ],
-      "outputs": ["dist/**"]
     },
     "@bb/app#build": {
       "env": [
@@ -332,38 +293,6 @@
       "persistent": true,
       "passThroughEnv": ["*"]
     },
-    "@bb/mobile#theme:generate": {
-      "cache": false
-    },
-    "@bb/mobile#test": {
-      "env": ["VITEST_MAX_WORKERS"],
-      "dependsOn": ["//#ensure-native-modules", "topo"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/vitest*.ts",
-        "$TURBO_ROOT$/apps/app/src/components/ui/theme.css",
-        "$TURBO_ROOT$/apps/app/src/lib/themes/**"
-      ]
-    },
-    "@bb/mobile#dev": {
-      "cache": false,
-      "persistent": true,
-      "passThroughEnv": ["*"]
-    },
-    "@bb/mobile#build:android:local": {
-      "cache": false,
-      "outputs": ["build-output/**"],
-      "passThroughEnv": ["*"]
-    },
-    "@bb/mobile#build:android:dev": {
-      "cache": false,
-      "outputs": ["build-output/**"],
-      "passThroughEnv": ["*"]
-    },
-    "@bb/mobile#e2e:android": {
-      "cache": false,
-      "passThroughEnv": ["*"]
-    },
     "storybook": {
       "dependsOn": ["@bb/templates#generate:templates"],
       "cache": false,
@@ -450,9 +379,6 @@
     "@bb/plugin-build#topo": {
       "dependsOn": ["^topo", "@bb/plugin-build#generate"]
     },
-    "@bb/web#topo": {
-      "dependsOn": ["^topo", "@bb/server#generate:bb-official-marketplace"]
-    },
     "@bb/server#topo": {
       "dependsOn": ["^topo", "@bb/server#generate:bb-official-marketplace"]
     },
@@ -520,16 +446,6 @@
         "$TURBO_ROOT$/changelog-parser.ts"
       ]
     },
-    "@bb/web#typecheck": {
-      "dependsOn": ["topo"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/changelog-metadata.ts",
-        "$TURBO_ROOT$/changelog-parser.ts",
-        "$TURBO_ROOT$/packages/shared-ui/src/**",
-        "$TURBO_ROOT$/plugins/plugin-api-docs/src/**"
-      ]
-    },
     "@bb/host-daemon#build": {
       "dependsOn": ["topo"],
       "inputs": [
@@ -570,23 +486,6 @@
         "$TURBO_ROOT$/packages/templates/scripts/**",
         "$TURBO_ROOT$/packages/templates/src/**",
         "$TURBO_ROOT$/vitest*.ts"
-      ]
-    },
-    // The source-wrapper test invokes the root `pnpm bb` script, which builds
-    // and executes @bb/cli. Model that cross-package dependency so CLI changes
-    // cannot leave this test hidden behind a stale Turbo cache entry.
-    "@bb/web#test": {
-      "env": ["VITEST_MAX_WORKERS"],
-      "dependsOn": ["//#ensure-native-modules", "topo"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/vitest*.ts",
-        "$TURBO_ROOT$/plugins/plugin-api-docs/src/**",
-        "$TURBO_ROOT$/plugins/*/package.json"
-      ],
-      "passThroughEnv": [
-        "UPDATE_PARITY_ROW_COUNTS",
-        "UPDATE_TRANSCRIPT_EXPECTATIONS"
       ]
     },
     "@bb/scripts#test": {
@@ -837,21 +736,6 @@
         "$TURBO_ROOT$/tests/scripted-echo-provider/src/**",
         "$TURBO_ROOT$/vitest*.ts"
       ]
-    },
-    "@bb/integration-tests#e2e:mobile-backend": {
-      "cache": false,
-      "persistent": true,
-      "passThroughEnv": ["*"],
-      "dependsOn": [
-        "//#ensure-native-modules",
-        "@get-bb/plugin-sdk#build",
-        "topo"
-      ]
-    },
-    "@bb/integration-tests#e2e:mobile-connect-stub": {
-      "cache": false,
-      "persistent": true,
-      "passThroughEnv": ["*"]
     },
     "test:integration": {
       "dependsOn": ["//#ensure-native-modules", "topo"],

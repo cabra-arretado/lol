@@ -78,6 +78,7 @@ import {
   CONNECT_PLUGIN_ID,
   ONBOARDING_PLUGINS,
   ONBOARDING_PLUGIN_MARKETPLACE,
+  ONBOARDING_STEPS,
   connectAccessUrl,
   defaultSelectedRepoPaths,
   hasReadyAgent,
@@ -811,7 +812,11 @@ function PluginsStepContainer({
       step="plugins"
       title="Make bb yours"
       description="Most of bb is plugins. These ones are off until you want them, and you can change your mind in Plugins."
-      primaryLabel="Continue"
+      primaryLabel={
+        STEP_ORDER[STEP_ORDER.length - 1] === "plugins"
+          ? "Start using bb"
+          : "Continue"
+      }
       secondaryLabel="Skip"
       onPrimary={onContinue}
       onSecondary={onSkip}
@@ -896,12 +901,9 @@ function DevicesStepContainer({
   );
 }
 
-const STEP_ORDER: readonly OnboardingStepId[] = [
-  "agent",
-  "projects",
-  "plugins",
-  "devices",
-];
+const STEP_ORDER: readonly OnboardingStepId[] = ONBOARDING_STEPS.map(
+  (entry) => entry.id,
+);
 
 export function OnboardingFlow({
   initialStep,
@@ -912,7 +914,9 @@ export function OnboardingFlow({
   entry: OnboardingEntry;
   onClose: () => void;
 }) {
-  const [step, setStep] = useState(initialStep);
+  const [step, setStep] = useState(
+    STEP_ORDER.includes(initialStep) ? initialStep : "agent",
+  );
   const navigationProjects = useSidebarNavigation().data?.projects;
   const [projectIdsAtOpen, setProjectIdsAtOpen] =
     useState<ReadonlySet<string> | null>(null);
@@ -1017,6 +1021,10 @@ export function OnboardingFlow({
     if (next !== undefined) setStep(next);
   };
   const advance = (outcome: "completed" | "skipped") => () => {
+    if (STEP_ORDER[STEP_ORDER.indexOf(step) + 1] === undefined) {
+      close(outcome);
+      return;
+    }
     recordTelemetryEvent({
       name:
         outcome === "completed"

@@ -20,7 +20,7 @@ results, but it never changes authored values.
 ## Where themes live
 
 ```sh
-bb theme dir          # the custom-theme directory, e.g. ~/.bb/theme
+bb theme dir          # the custom-theme directory, e.g. ~/.lol/theme
 ```
 
 One directory per theme, one file inside it:

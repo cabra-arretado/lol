@@ -25,12 +25,18 @@ Context variables set automatically inside a thread environment:
 - BB_ENVIRONMENT_ID — current environment
 - BB_CLI — absolute path to the daemon-managed `bb` executable (prefer this if bare `bb` is wrong; official entrypoints also re-exec to it)
 
-Outside a thread the CLI targets http://127.0.0.1:38886; set BB_SERVER_URL (and
+Outside a thread the CLI targets http://127.0.0.1:38986; set BB_SERVER_URL (and
 BB_HOST_DAEMON_PORT) only for a deliberate non-default target.
 
 Run `bb status` to see your current context (resolved project and thread IDs).
 It also warns when an enabled plugin is not running (incompatible after a bb
 upgrade, failed to load, or missing); run `bb plugin list` for the detail.
+
+Run `bb capabilities` to see which network-facing capabilities this edition
+allows (telemetry, bb account, connect, cloud AI, remote marketplaces, updates,
+remote machines, and similar). The personal edition denies all of them; the
+list is fixed at build time and cannot be changed by settings or environment
+variables.
 
 All commands support --json for machine-readable output. With --json a failure
 prints `{"ok": false, "error": {code, message, hint}}` on stdout; `bb guide json`

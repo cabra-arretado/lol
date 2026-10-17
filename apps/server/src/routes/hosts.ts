@@ -1,3 +1,4 @@
+import { assertCapabilityAllowed } from "@bb/domain";
 import { joinHostPathSegments } from "../services/lib/host-path.js";
 import { serverAccess } from "../services/machines/server-access.js";
 import {
@@ -141,11 +142,19 @@ export function registerHostRoutes(
 
   post(routes.create, async (context, payload) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     return context.json(await submitMachine(deps, payload), 201);
   });
 
   post(routes.createJoinCode, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     const issued = await issueHostEnrollKey(deps, {
       enrollSource: "public-multi-machine",
     });
@@ -184,6 +193,10 @@ export function registerHostRoutes(
 
   get(routes.enrollmentCommand, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     requireMutableHost(deps, context.req.param("id"));
     return context.json(
       await manualHostCommand(
@@ -195,6 +208,10 @@ export function registerHostRoutes(
 
   post(routes.reconnect, async (context) => {
     assertHostManagementAllowed(context);
+    assertCapabilityAllowed(
+      "remoteHostEnrollment",
+      deps.config.isCapabilityAllowed,
+    );
     const hostId = context.req.param("id");
     const host = requireMutableHost(deps, hostId);
     if (resolvePrimaryHostId(deps) === hostId || host.phase !== "active")

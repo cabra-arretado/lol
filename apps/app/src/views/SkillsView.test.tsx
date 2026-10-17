@@ -19,7 +19,7 @@ import {
 import { focusManager } from "@tanstack/react-query";
 import type { ProviderInfo } from "@bb/domain";
 import type { SkillSummary } from "@bb/server-contract";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQueryClientTestHarness } from "@/test/queryClientTestHarness";
 import { makeProviderInfo } from "@bb/test-helpers/domain-fixtures";
 import { sdk } from "@/lib/sdk";
@@ -38,6 +38,27 @@ import {
 } from "../components/tools/SkillsCollection";
 import { SkillsLibrary } from "../components/tools/SkillsLibrary";
 import { focusWithKeyboard } from "@/test/keyboard-focus";
+
+const capabilityOverrides = vi.hoisted(() => new Set<string>());
+
+vi.mock("@bb/domain", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@bb/domain")>();
+  return {
+    ...actual,
+    isCapabilityAllowed: (
+      id: Parameters<typeof actual.isCapabilityAllowed>[0],
+    ) => capabilityOverrides.has(id) || actual.isCapabilityAllowed(id),
+  };
+});
+
+function allowSkillsRegistry(): void {
+  beforeEach(() => {
+    capabilityOverrides.add("skillsRegistry");
+  });
+  afterEach(() => {
+    capabilityOverrides.clear();
+  });
+}
 
 afterEach(() => {
   focusManager.setFocused(undefined);
@@ -782,6 +803,31 @@ describe("SkillsOverview", () => {
 });
 
 describe("SkillsLibrary library detail routing", () => {
+  it("opens /skills on Library while the skills registry is denied", async () => {
+    vi.spyOn(sdk.skills, "list").mockResolvedValue({ skills: [] });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { wrapper: QueryClientWrapper } = createQueryClientTestHarness();
+    renderDom(
+      <MemoryRouter initialEntries={["/skills"]}>
+        <QueryClientWrapper>
+          <Routes>
+            <Route path="/skills" element={<SkillsLibrary />} />
+          </Routes>
+        </QueryClientWrapper>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("textbox", { name: "Search skills" }),
+    ).toBeTruthy();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes("/api/v1/skills-registry"),
+      ),
+    ).toBe(false);
+  });
+
   it("keeps a detail loading state while the skill library resolves", () => {
     vi.spyOn(sdk.skills, "list").mockImplementation(
       () => new Promise(() => {}),
@@ -818,6 +864,8 @@ describe("SkillsLibrary library detail routing", () => {
 });
 
 describe("SkillsLibrary registry detail lifecycle", () => {
+  allowSkillsRegistry();
+
   it("does not offer installation when a direct registry source is unavailable", async () => {
     const registrySkill = makeRegistrySkill();
     vi.spyOn(sdk.skills, "list").mockResolvedValue({ skills: [] });
@@ -1156,6 +1204,8 @@ describe("SkillsLibrary registry detail lifecycle", () => {
 });
 
 describe("RegistrySkillsBrowsePage", () => {
+  allowSkillsRegistry();
+
   it("renders the authoritative page order, exposes social proof, and loads more on scroll", () => {
     const alpha = makeRegistrySkill({
       id: "owner/repo/alpha",
@@ -1257,6 +1307,8 @@ function stubIntersectionObserver() {
 }
 
 describe("SkillsLibrary registry browse paging", () => {
+  allowSkillsRegistry();
+
   function renderBrowse() {
     const { wrapper: QueryClientWrapper } = createQueryClientTestHarness();
     return renderDom(

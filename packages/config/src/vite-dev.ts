@@ -1,3 +1,4 @@
+import { assertCapabilityAllowed } from "@bb/domain";
 import { loadDevAppConfig } from "./dev-app.js";
 import { type EnvLoaderArgs } from "./env.js";
 import { BB_LOOPBACK_HOST } from "./runtime.js";
@@ -14,8 +15,17 @@ interface LoadViteDevConfigArgs extends EnvLoaderArgs {
   repoRoot?: string;
 }
 
+const LOOPBACK_DEV_APP_HOSTS: ReadonlySet<string> = new Set([
+  BB_LOOPBACK_HOST,
+  "localhost",
+  "::1",
+]);
+
 function resolveViteDevAppHost(configuredHost: string): string {
   if (configuredHost !== "") {
+    if (!LOOPBACK_DEV_APP_HOSTS.has(configuredHost)) {
+      assertCapabilityAllowed("nonLoopbackBind");
+    }
     return configuredHost;
   }
 

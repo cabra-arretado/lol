@@ -1,6 +1,6 @@
 {
-  "appId": "dev.bb.desktop",
-  "productName": "bb",
+  "appId": "dev.lol.desktop",
+  "productName": "lol",
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "toolsets": {
     "appimage": "1.0.3"
@@ -62,7 +62,7 @@
   },
   "linux": {
     "category": "Development",
-    "executableName": "bb",
+    "executableName": "lol",
     "icon": "assets/icon.png",
     "target": [{ "target": "AppImage", "arch": ["x64"] }]
   },

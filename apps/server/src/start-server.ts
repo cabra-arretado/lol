@@ -7,7 +7,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerConfig } from "@bb/config/server";
 import { isLoopbackHostname } from "@bb/config/loopback";
+import {
+  installEgressGuard,
+  loadEgressAllowedHosts,
+} from "@bb/config/egress-guard";
 import { toOptionalString } from "@bb/config/strings";
+import { capabilityGuardedFetch, isCapabilityAllowed } from "@bb/domain";
 import { createLogger } from "@bb/logger";
 import {
   getAppSettings,
@@ -106,7 +111,9 @@ export function startServerPlugins(
     })
     .finally(() => {
       args.providerRegistry.markRegistrationsSettled();
-      args.pluginService.startPeriodicUpdateChecks();
+      if (isCapabilityAllowed("thirdPartyPluginInstall")) {
+        args.pluginService.startPeriodicUpdateChecks();
+      }
     });
 }
 
@@ -114,6 +121,12 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   const logger = createLogger({
     component: "server",
     dataDir: serverConfig.BB_DATA_DIR,
+  });
+  installEgressGuard({
+    allowedHosts: loadEgressAllowedHosts(),
+    onBlocked: (attempt) => {
+      logger.warn(attempt, "Blocked outbound connection");
+    },
   });
   await refuseInterruptedServerImport({
     dataDir: serverConfig.BB_DATA_DIR,
@@ -172,6 +185,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     isProduction && existsSync(appDistDir) ? appDistDir : undefined;
   const runtimeConfig: ServerRuntimeConfig = {
     appVersion: serverConfig.BB_APP_VERSION,
+    isCapabilityAllowed,
     builtinSkillsRootPath: resolveBuiltinSkillsRootPath(),
     marketplaceUrl: serverConfig.BB_MARKETPLACE_URL,
     customModels: [],
@@ -225,7 +239,10 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     appVersion: serverConfig.BB_APP_VERSION,
     dataDir: serverConfig.BB_DATA_DIR,
     enabled:
-      serverConfig.BB_TELEMETRY && isProduction && pendingServerMove === null,
+      isCapabilityAllowed("telemetry") &&
+      serverConfig.BB_TELEMETRY &&
+      isProduction &&
+      pendingServerMove === null,
     telemetryEnabled: getAppSettings(db).telemetryEnabled,
     logger,
   });
@@ -260,6 +277,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   setPluginToolCallRegistry(new PluginToolCallRegistry({ logger }));
 
   const appVersion = createAppVersionService({
+    fetchImpl: capabilityGuardedFetch("inAppUpdate", fetch),
     installKind: serverConfig.BB_APP_INSTALL_KIND ?? null,
     sourceCommit: serverConfig.BB_APP_SOURCE_COMMIT ?? null,
     config: runtimeConfig,
@@ -463,7 +481,9 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
         void serverMove.handlePluginsStarted();
       });
     }
-    pluginCatalogService.startPeriodicRefresh();
+    if (isCapabilityAllowed("remoteMarketplace")) {
+      pluginCatalogService.startPeriodicRefresh();
+    }
     sweepInterval = setInterval(() => {
       if (!isServerMoveFrozen(db)) {
         void runPeriodicSweeps(sweepDeps);

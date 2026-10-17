@@ -35,7 +35,6 @@ import {
   resolveDataDir,
   resolveBbAppStartContext,
   resolveBbAppCommand,
-  resolveServerListenerUrl,
   resolveBundledCliLaunch,
   resolveWorktreeRuntimePolicy,
   runBbApp,
@@ -250,15 +249,15 @@ function createTestStartContext(): BbAppStartContext {
     daemonEntry: "/tmp/bb-app-test/host-daemon/dist/daemon-bundle.mjs",
     daemonLockDir: "/tmp/bb-app-test/daemon.lock.lock",
     daemonLockFile: "/tmp/bb-app-test/daemon.lock",
-    daemonPort: 38887,
+    daemonPort: 38987,
     dataDir: "/tmp/bb-app-test",
     dbPath: "/tmp/bb-app-test/bb.db",
     envFile: "/tmp/bb-app-test/env.json",
     logDir: "/tmp/bb-app-test/logs",
     packageRoot: "/tmp/bb-app-test/package",
     serverEntry: "/tmp/bb-app-test/server/dist/index.js",
-    serverPort: 38886,
-    serverUrl: "http://127.0.0.1:38886",
+    serverPort: 38986,
+    serverUrl: "http://127.0.0.1:38986",
   };
 }
 
@@ -499,7 +498,7 @@ describe("bb-app launcher", () => {
         JSON.stringify({
           connected: statusRequests >= 2,
           hostId: "host-expected",
-          serverUrl: "http://127.0.0.1:38886/",
+          serverUrl: "http://127.0.0.1:38986/",
         }),
       );
     });
@@ -516,7 +515,7 @@ describe("bb-app launcher", () => {
       await waitForHostDaemonStatus({
         childProcess: null,
         expectedHostId: "host-expected",
-        expectedServerUrl: "http://localhost:38886",
+        expectedServerUrl: "http://localhost:38986",
         port: address.port,
         timeoutMs: 1_000,
       });
@@ -574,12 +573,14 @@ describe("bb-app launcher", () => {
       homeDir: "/home/tester",
     });
 
-    expect(context.dataDir).toBe(join("/home/tester", ".bb"));
-    expect(context.configFile).toBe(join("/home/tester", ".bb", "config.json"));
-    expect(context.envFile).toBe(join("/home/tester", ".bb", "env.json"));
-    expect(context.serverPort).toBe(38886);
-    expect(context.daemonPort).toBe(38887);
-    expect(context.serverUrl).toBe("http://127.0.0.1:38886");
+    expect(context.dataDir).toBe(join("/home/tester", ".lol"));
+    expect(context.configFile).toBe(
+      join("/home/tester", ".lol", "config.json"),
+    );
+    expect(context.envFile).toBe(join("/home/tester", ".lol", "env.json"));
+    expect(context.serverPort).toBe(38986);
+    expect(context.daemonPort).toBe(38987);
+    expect(context.serverUrl).toBe("http://127.0.0.1:38986");
     expect(context.serverEntry).toBe(
       resolve("/repo/packages/bb-app/server/dist/index.js"),
     );
@@ -729,9 +730,9 @@ describe("bb-app launcher", () => {
     });
   });
 
-  it("runs the source update shim for a start unless --no-in-app-updates is passed", () => {
-    expect(shouldRunSourceAppUpdateShim([])).toBe(true);
-    expect(shouldRunSourceAppUpdateShim(["start"])).toBe(true);
+  it("never runs the source update shim in the personal edition", () => {
+    expect(shouldRunSourceAppUpdateShim([])).toBe(false);
+    expect(shouldRunSourceAppUpdateShim(["start"])).toBe(false);
     expect(shouldRunSourceAppUpdateShim(["--no-in-app-updates"])).toBe(false);
     expect(shouldRunSourceAppUpdateShim(["start", "--no-in-app-updates"])).toBe(
       false,
@@ -746,7 +747,7 @@ describe("bb-app launcher", () => {
       positionals: ["start"],
     });
     expect(shouldRunSourceAppUpdateShim(["start", "--in-app-updates"])).toBe(
-      true,
+      false,
     );
     expect(() =>
       parseLauncherArgs(["--in-app-updates", "--no-in-app-updates"]),
@@ -777,28 +778,6 @@ describe("bb-app launcher", () => {
     }
   });
 
-  it("reports the server bind host separately from the loopback connection URL", async () => {
-    const parsedArgs = parseLauncherArgs(["--server-bind-host", "0.0.0.0"]);
-    const dataDir = mkdtempSync(join(tmpdir(), "bb-app-bind-host-"));
-    const runtime = await resolveBbAppRuntimeState({
-      entrypointUrl: pathToFileURL("/repo/packages/bb-app/dist/bb-app.js").href,
-      env: { BB_DATA_DIR: dataDir },
-      homeDir: "/home/tester",
-      options: parsedArgs.options,
-      serverUrlMode: "local",
-    });
-
-    expect(parsedArgs.options.serverBindHost).toBe("0.0.0.0");
-    expect(runtime.serverEnv.BB_SERVER_BIND_HOST).toBe("0.0.0.0");
-    expect(
-      resolveServerListenerUrl({
-        bindHost: runtime.serverEnv.BB_SERVER_BIND_HOST,
-        port: runtime.context.serverPort,
-      }),
-    ).toBe("http://0.0.0.0:38886");
-    expect(runtime.context.serverUrl).toBe("http://127.0.0.1:38886");
-  });
-
   it("strips parent thread context from the production server without stripping the CLI", async () => {
     const dataDir = mkdtempSync(join(tmpdir(), "bb-app-thread-context-"));
     const runtime = await resolveBbAppRuntimeState({
@@ -808,7 +787,7 @@ describe("bb-app launcher", () => {
         BB_ENVIRONMENT_ID: "env_parent",
         BB_PROJECT_ID: "proj_parent",
         BB_THREAD_ID: "thr_parent",
-        BB_THREAD_STORAGE: "/home/tester/.bb/thread-storage/thr_parent",
+        BB_THREAD_STORAGE: "/home/tester/.lol/thread-storage/thr_parent",
       },
       homeDir: "/home/tester",
       options: { help: false },
@@ -833,7 +812,7 @@ describe("bb-app launcher", () => {
     expect(runtime.env.BB_ENVIRONMENT_ID).toBe("env_parent");
     expect(runtime.env.BB_THREAD_ID).toBe("thr_parent");
     expect(runtime.env.BB_THREAD_STORAGE).toBe(
-      "/home/tester/.bb/thread-storage/thr_parent",
+      "/home/tester/.lol/thread-storage/thr_parent",
     );
 
     const cliThreadIdPath = join(dataDir, "cli-thread-id.txt");
@@ -995,7 +974,7 @@ describe("bb-app launcher", () => {
       })
     ).context;
 
-    expect(context.serverUrl).toBe("http://127.0.0.1:38886");
+    expect(context.serverUrl).toBe("http://127.0.0.1:38986");
   });
 
   it("applies managed config environment values over ambient env", async () => {
@@ -1601,7 +1580,7 @@ describe("bb-app launcher", () => {
         "env",
         "set",
         "BB_SERVER_BIND_HOST",
-        "0.0.0.0",
+        "127.0.0.1",
       ]),
     );
 
@@ -2154,12 +2133,12 @@ describe("bb-app launcher", () => {
 
     expect(
       createServerEnv({
-        cliLauncherPath: "/home/me/.bb/bin/bb",
+        cliLauncherPath: "/home/me/.lol/bin/bb",
         context,
         env: { BB_CLI_LAUNCHER: "/stale/bin/bb" },
         install: { kind: "npm" },
       }).BB_CLI_LAUNCHER,
-    ).toBe("/home/me/.bb/bin/bb");
+    ).toBe("/home/me/.lol/bin/bb");
     expect(
       createServerEnv({
         cliLauncherPath: null,

@@ -41,6 +41,7 @@ import {
 } from "@bb/connect-client";
 import {
   appCommandIdSchema,
+  isCapabilityAllowed,
   type AppCommandId,
   type AppKeybindings,
 } from "@bb/domain";
@@ -76,6 +77,7 @@ import {
   type BbAppProcessExit,
   startBbAppProcess,
 } from "./bb-process.js";
+import { installDesktopEgressFilter } from "./desktop-egress-filter.js";
 import { openExistingServerDialog } from "./existing-server-dialog.js";
 import {
   readForeignRuntimeDetails,
@@ -669,7 +671,7 @@ const desktopLogger: DesktopAutoUpdateLogger = {
 function resolveDataDirFromEnv(args: ResolveDataDirFromEnvArgs): string {
   const rawDataDir = args.env.BB_DATA_DIR?.trim();
   if (rawDataDir === undefined || rawDataDir.length === 0) {
-    return join(args.homeDir, ".bb");
+    return join(args.homeDir, ".lol");
   }
   if (rawDataDir === "~") {
     return args.homeDir;
@@ -814,6 +816,7 @@ function buildServerMenuArgs(): ServerMenuArgs {
       void openSetServerUrlDialog(true);
     },
     connectServersSkipReason: connectServerSyncSkipReason,
+    remoteServersAllowed: isCapabilityAllowed("remoteServerConnect"),
     selectServer(serverId) {
       void setActiveServerTarget(serverId);
     },
@@ -1662,6 +1665,7 @@ async function handleWatchedServerMove(move: DesktopServerMove): Promise<void> {
 }
 
 function ensureDesktopMachineEnrolled(): void {
+  if (!isCapabilityAllowed("bbConnect")) return;
   const cache = connectCredentialCache;
   const localServerUrl = currentRuntime?.serverUrl;
   if (
@@ -1737,6 +1741,7 @@ async function runStartupAction(
 }
 
 function openConnectSignIn(parentWindow: BrowserWindow | null): void {
+  if (!isCapabilityAllowed("bbAccount")) return;
   if (connectSignInWindow !== null && !connectSignInWindow.isDestroyed()) {
     connectSignInWindow.focus();
     return;
@@ -1852,6 +1857,12 @@ async function applyServerTarget(): Promise<void> {
   startupErrorPage = null;
   if (serverTargetStore === null) {
     return;
+  }
+  if (
+    !isCapabilityAllowed("remoteServerConnect") &&
+    serverTargetStore.getTarget().kind !== "builtin"
+  ) {
+    await serverTargetStore.setTarget("builtin");
   }
   connectSessionRenewal?.stop();
   serverTargetGeneration += 1;
@@ -2021,7 +2032,11 @@ async function setActiveServerTarget(serverId: string): Promise<void> {
 }
 
 async function openSetServerUrlDialog(add = false): Promise<void> {
-  if (serverTargetStore === null || serverUrlDialogPreloadPath === null) {
+  if (
+    !isCapabilityAllowed("remoteServerConnect") ||
+    serverTargetStore === null ||
+    serverUrlDialogPreloadPath === null
+  ) {
     return;
   }
   const target = serverTargetStore.getTarget();
@@ -2865,7 +2880,7 @@ async function runDesktopApp(): Promise<void> {
 
   const applicationName = app.isPackaged
     ? DESKTOP_RELEASE_INFO.applicationName
-    : "bb-dev";
+    : "lol-dev";
   app.setName(applicationName);
   installAboutPanel(applicationName);
 
@@ -2927,6 +2942,12 @@ async function runDesktopApp(): Promise<void> {
   });
 
   await app.whenReady();
+  installDesktopEgressFilter({
+    session: session.defaultSession,
+    onBlocked: (url) => {
+      desktopLogger.warn(`[desktop] blocked outbound request to ${url}`);
+    },
+  });
   if (app.isPackaged) {
     await session.defaultSession.clearCache();
   }
@@ -3033,39 +3054,41 @@ async function runDesktopApp(): Promise<void> {
     userDataPath,
   });
   cachedConnectCredential = await connectCredentialCache.read();
-  connectServerSync = createConnectServerSync({
-    getAccountSession: readConnectAccountSession,
-    getCredential: () => cachedConnectCredential,
-    getLocalServerUrl: () =>
-      localServerMove === null ? (currentRuntime?.serverUrl ?? null) : null,
-    onUnauthorized() {
-      void clearCachedConnectCredential();
-    },
-    onSkipped(reason) {
-      connectServerSyncSkipReason = reason;
-      refreshApplicationMenu();
-    },
-    onServers(servers) {
-      connectAccountServers = servers;
-      connectServerSyncSkipReason = null;
-      const selected = serverTargetStore?.getConnectServer() ?? null;
-      const synced = servers.find(
-        (server) => server.handle === selected?.handle,
-      );
-      if (synced !== undefined) {
-        void serverTargetStore?.refreshConnectServer({
-          handle: synced.handle,
-          name: synced.name,
-          url: synced.url,
-        });
-      }
-      void adoptSavedConnectServers();
-    },
-    log: (message) => {
-      desktopLogger.info(`[desktop] ${message}`);
-    },
-  });
-  connectServerSync.start();
+  connectServerSync = !isCapabilityAllowed("bbConnect")
+    ? null
+    : createConnectServerSync({
+        getAccountSession: readConnectAccountSession,
+        getCredential: () => cachedConnectCredential,
+        getLocalServerUrl: () =>
+          localServerMove === null ? (currentRuntime?.serverUrl ?? null) : null,
+        onUnauthorized() {
+          void clearCachedConnectCredential();
+        },
+        onSkipped(reason) {
+          connectServerSyncSkipReason = reason;
+          refreshApplicationMenu();
+        },
+        onServers(servers) {
+          connectAccountServers = servers;
+          connectServerSyncSkipReason = null;
+          const selected = serverTargetStore?.getConnectServer() ?? null;
+          const synced = servers.find(
+            (server) => server.handle === selected?.handle,
+          );
+          if (synced !== undefined) {
+            void serverTargetStore?.refreshConnectServer({
+              handle: synced.handle,
+              name: synced.name,
+              url: synced.url,
+            });
+          }
+          void adoptSavedConnectServers();
+        },
+        log: (message) => {
+          desktopLogger.info(`[desktop] ${message}`);
+        },
+      });
+  connectServerSync?.start();
   connectSessionRenewal = createConnectSessionRenewal({
     async authenticate(remoteServerUrl, isCurrent) {
       const target = serverTargetStore?.getTarget();
@@ -3095,6 +3118,7 @@ async function runDesktopApp(): Promise<void> {
     channel: DESKTOP_RELEASE_CHANNEL,
     currentVersion: desktopVersion,
     enabled:
+      isCapabilityAllowed("desktopAutoUpdate") &&
       desktopUpdateSupport.versionCheck &&
       (app.isPackaged || process.env.BB_DESKTOP_VERSION_CHECK === "1"),
     feedUrl: desktopUpdateFeedUrl,
@@ -3104,6 +3128,7 @@ async function runDesktopApp(): Promise<void> {
   desktopAutoUpdateService = createDesktopAutoUpdateService({
     currentVersion: desktopVersion,
     enabled:
+      isCapabilityAllowed("desktopAutoUpdate") &&
       desktopUpdateSupport.autoUpdate &&
       shouldEnableDesktopAutoUpdate({
         env: process.env,
@@ -3299,15 +3324,21 @@ async function runDesktopApp(): Promise<void> {
       return currentRuntime?.serverUrl ?? builtinServerUrl;
     },
   });
-  if (desktopUpdateSupport.versionCheck) {
-    desktopUpdateService.start();
-  }
-  if (desktopUpdateSupport.autoUpdate) {
-    desktopAutoUpdateService.start();
-  } else {
+  if (!isCapabilityAllowed("desktopAutoUpdate")) {
     desktopLogger.info(
-      "Desktop auto-install is disabled: only the Linux AppImage build can replace itself. Version checks still report new releases.",
+      "Desktop update checks are disabled in the personal edition.",
     );
+  } else {
+    if (desktopUpdateSupport.versionCheck) {
+      desktopUpdateService.start();
+    }
+    if (desktopUpdateSupport.autoUpdate) {
+      desktopAutoUpdateService.start();
+    } else {
+      desktopLogger.info(
+        "Desktop auto-install is disabled: only the Linux AppImage build can replace itself. Version checks still report new releases.",
+      );
+    }
   }
 
   const browserWindowCreator: DesktopBrowserWindowCreator = {
@@ -3367,7 +3398,7 @@ async function runDesktopApp(): Promise<void> {
     await initializeRuntime({ bridgePath, serverUrl, userDataPath });
   } else {
     await applyServerTarget();
-    connectServerSync.syncNow().catch(() => {});
+    connectServerSync?.syncNow().catch(() => {});
   }
 }
 

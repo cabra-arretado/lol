@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { Host, PermissionMode } from "@bb/domain";
+import {
+  isCapabilityAllowed,
+  type Host,
+  type PermissionMode,
+} from "@bb/domain";
 import type { SystemMachineProvider } from "@bb/server-contract";
 import type { HostPlatform } from "@bb/host-daemon-contract";
 import { Button } from "@bb/shared-ui/button";
@@ -347,14 +351,16 @@ export function MachinesSettingsSection() {
         title="Machines"
         bodyClassName="space-y-3 border-0 bg-transparent p-0"
         action={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setAddDialogOpen(true)}
-          >
-            <Icon name="Plus" className="size-3.5" />
-            Add a machine
-          </Button>
+          isCapabilityAllowed("remoteHostEnrollment") ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              <Icon name="Plus" className="size-3.5" />
+              Add a machine
+            </Button>
+          ) : undefined
         }
       >
         {attentionHosts.length > 0 ? (

@@ -23,6 +23,8 @@ import {
 } from "@bb/db";
 import {
   applyAppKeybindingOverrides,
+  assertCapabilityAllowed,
+  capabilityPolicyView,
   appSettingsSchema,
   customThemeNameSchema,
   isBuiltInThemeId,
@@ -159,9 +161,12 @@ export function registerSystemRoutes(
 
   const mobileAppReleases = createMobileAppReleaseService();
   get(routes.mobileAppReleases, async (context) => {
+    assertCapabilityAllowed("mobileApp", deps.config.isCapabilityAllowed);
     context.header("cache-control", "no-store");
     return context.json(await mobileAppReleases());
   });
+
+  get(routes.capabilities, (context) => context.json(capabilityPolicyView()));
 
   get(routes.attention, (context) =>
     context.json({ hasAttention: hasActiveThreadAttention(deps.db) }),
@@ -709,6 +714,7 @@ export function registerSystemRoutes(
 
   post(routes.applyAppUpdate, async (context, body) => {
     assertAppUpdateAllowed(context);
+    assertCapabilityAllowed("inAppUpdate", deps.config.isCapabilityAllowed);
     return context.json(
       await deps.appUpdate.apply({
         confirmInterruptingThreads: body.confirmInterruptingThreads,

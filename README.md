@@ -59,7 +59,7 @@ yellow icon, and auto-update feed.
 npx bb-app@latest
 ```
 
-Then open `http://localhost:38886`.
+Then open `http://localhost:38986`.
 
 To control bb from outside bb with the `bb` CLI, open **Settings → General →
 Command line** and choose **Install**. See
@@ -118,7 +118,7 @@ pnpm dev
 That starts the Vite app and proxies API and WebSocket traffic to a separate
 dev server. The launcher prints the actual ports at startup. Each checkout gets
 a data directory under
-`~/.bb-dev/<checkout-instance>/` and deterministic high ports derived from the
+`~/.lol-dev/<checkout-instance>/` and deterministic high ports derived from the
 checkout path. The checkout instance id is the sanitized path to the checkout,
 relative to your home directory, plus a short hash suffix. Separate worktrees
 can run alongside each other and the packaged `npx bb-app@latest` instance.
@@ -164,30 +164,8 @@ Then open `https://<machine>.<tailnet>.ts.net`. Source dev binds both the Vite
 app and main server to loopback by default; Vite continues to proxy API and
 WebSocket traffic.
 
-For direct access at `http://<tailscale-ip>:<app-port>` instead, run:
-
-```bash
-pnpm dev:remote
-```
-
-This binds the Vite app and main server to all IPv4 interfaces. The remote
-browser must be able to reach both the printed app and server ports for realtime
-updates. The server API is unauthenticated and permits command execution and
-file reads, so use this only behind a trusted network boundary and restrict the
-ports to Tailscale traffic with the host firewall when the LAN is not trusted.
-
-To access the production-style worktree server directly from another machine,
-run:
-
-```bash
-pnpm start:worktree-remote
-```
-
-This uses the same checkout-specific data directory and ports as
-`pnpm start:worktree`, but binds its single server listener to all IPv4
-interfaces. The server API is unauthenticated and permits command execution and
-file reads, so use it only behind a trusted network boundary and restrict the
-port to Tailscale traffic with the host firewall when the LAN is not trusted.
+This fork only listens on loopback: `BB_SERVER_BIND_HOST=0.0.0.0` and a
+non-loopback `BB_DEV_APP_HOST` are refused (see `bb capabilities`).
 
 To use the component storybook from another machine, run:
 

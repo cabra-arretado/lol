@@ -16,6 +16,7 @@ import {
   defaultExperiments,
   earlyAdopterExperiments,
   experimentKeys,
+  isCapabilityAllowed,
   managedBranchPrefixSchema,
   type AppTheme,
   type ExperimentKey,
@@ -1365,7 +1366,9 @@ export function SettingsView() {
     content = (
       <>
         <MachinesSettingsSection />
-        <MachineAccessSettings />
+        {isCapabilityAllowed("remoteHostEnrollment") ? (
+          <MachineAccessSettings />
+        ) : null}
       </>
     );
   } else if (activeSection === "environment-variables") {

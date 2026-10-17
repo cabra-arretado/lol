@@ -66,28 +66,24 @@ function instanceName(sourcePath: string, homeDirectory: string) {
 function inferredPaths(name: string, homeDirectory: string) {
   const label = name.replace(/-[a-f0-9]{12}$/, "");
   const managed =
-    /^bb-plugins-environment-git-worktree-host-data-worktrees-(.+)-bb$/.exec(
+    /^lol-plugins-environment-git-worktree-host-data-worktrees-(.+)-lol$/.exec(
       label,
     );
-  const legacy = /^bb-worktrees-(.+)-bb$/.exec(label);
   const temporary = /^(private-tmp|tmp)-(.+)$/.exec(label);
   return [
     ...(managed
       ? [
           path.join(
             homeDirectory,
-            ".bb",
+            ".lol",
             "plugins",
             "environment-git-worktree",
             "host-data",
             "worktrees",
             managed[1]!,
-            "bb",
+            "lol",
           ),
         ]
-      : []),
-    ...(legacy
-      ? [path.join(homeDirectory, ".bb", "worktrees", legacy[1]!, "bb")]
       : []),
     ...(temporary && process.platform !== "win32"
       ? [
@@ -256,7 +252,7 @@ export async function removeDeveloperEntries(
   retainWorker: () => { dispose(): void },
 ) {
   assertDeveloperInput(input);
-  if (path.basename(input.rootPath) !== ".bb-dev")
+  if (path.basename(input.rootPath) !== ".lol-dev")
     throw new Error("Invalid developer storage path");
   let root: string;
   try {

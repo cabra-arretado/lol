@@ -1,3 +1,5 @@
+import { assertCapabilityAllowed } from "@bb/domain";
+import { parsePluginSource } from "../services/plugins/install-sources.js";
 import type { PluginUpdateJobs } from "../services/plugins/plugin-update-jobs.js";
 import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -52,8 +54,21 @@ import {
   pluginUpdateCheckRequestSchema,
 } from "@bb/server-contract";
 
+function pluginSourceKind(
+  source: string,
+): ReturnType<typeof parsePluginSource>["kind"] | null {
+  try {
+    return parsePluginSource(source).kind;
+  } catch {
+    return null;
+  }
+}
+
 interface PluginRoutesDeps {
-  config: Pick<ServerRuntimeConfig, "serverPort" | "appUrl" | "devAppPort">;
+  config: Pick<
+    ServerRuntimeConfig,
+    "serverPort" | "appUrl" | "devAppPort" | "isCapabilityAllowed"
+  >;
   db: import("@bb/db").DbConnection;
 }
 
@@ -737,6 +752,13 @@ export function registerPluginRoutes(
       );
     }
     const { source, selection } = parsed.data;
+    const sourceKind = pluginSourceKind(source);
+    if (sourceKind === "git" || sourceKind === "npm") {
+      assertCapabilityAllowed(
+        "thirdPartyPluginInstall",
+        deps.config.isCapabilityAllowed,
+      );
+    }
     const job = installJobs.start({
       target: { kind: "source", source, selection },
       displayName: source,

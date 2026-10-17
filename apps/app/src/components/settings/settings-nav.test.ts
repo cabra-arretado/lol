@@ -49,4 +49,24 @@ describe("filterSettingsNavSections", () => {
     expect(ids.includes("files")).toBe(showsFiles);
     expect(ids).toContain("archived");
   });
+
+  it("hides Mobile but keeps Updates for agent CLIs in the personal edition", () => {
+    const ids = filterSettingsNavSections({
+      hasDaemon: true,
+      accessState: "unavailable",
+      fileOpenerCount: 0,
+    }).map((section) => section.id);
+    expect(ids).not.toContain("mobile");
+    expect(ids).toContain("updates");
+    expect(ids).toContain("machines");
+  });
+
+  it("treats a denied section route as unknown", () => {
+    expect(
+      resolveSettingsRoute({ pathname: "/settings/mobile", search: "" }),
+    ).toMatchObject({ activeSection: "general", hasUnknownSection: true });
+    expect(
+      resolveSettingsRoute({ pathname: "/settings/updates", search: "" }),
+    ).toMatchObject({ activeSection: "updates", hasUnknownSection: false });
+  });
 });

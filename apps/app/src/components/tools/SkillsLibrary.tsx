@@ -11,7 +11,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { PERSONAL_PROJECT_ID } from "@bb/domain";
+import { isCapabilityAllowed, PERSONAL_PROJECT_ID } from "@bb/domain";
 import { buildSkillEditThreadPrompt } from "@bb/shared-ui/resource-edit-prompt";
 import type { EditableSkillScope, SkillSummary } from "@bb/server-contract";
 import {
@@ -171,9 +171,10 @@ export function SkillsLibrary() {
   const isLoading =
     skillsQuery.isFetching && skillsQuery.data === undefined && !hasError;
   const isRegistryBrowseRoute =
-    location.pathname === getRegistrySkillsRoutePath() ||
-    (matchPath(getSkillsRoutePath(), location.pathname) !== null &&
-      new URLSearchParams(location.search).get("view") !== "library");
+    isCapabilityAllowed("skillsRegistry") &&
+    (location.pathname === getRegistrySkillsRoutePath() ||
+      (matchPath(getSkillsRoutePath(), location.pathname) !== null &&
+        new URLSearchParams(location.search).get("view") !== "library"));
   const registryRequestPage =
     isRegistryBrowseRoute || routeRegistrySkillId !== undefined
       ? registryPage

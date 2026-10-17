@@ -22,15 +22,6 @@ export const BUILTIN_PLUGINS_DIRECTORY_NAME = "builtin-plugins";
 
 export const BUILTIN_PLUGIN_ID_PREFIX = "bb--";
 
-const ACCOUNT_POOL_PARENT_URL_ENV = "BB_ACCOUNT_POOL_PARENT_URL";
-
-export function accountPoolDefaultEnabled(
-  env: NodeJS.ProcessEnv = process.env,
-): boolean {
-  const value = env[ACCOUNT_POOL_PARENT_URL_ENV];
-  return typeof value === "string" && value.length > 0;
-}
-
 const REPO_PLUGINS_DIRECTORY_NAME = "plugins";
 
 export const BUILTIN_PLUGINS = [
@@ -45,11 +36,6 @@ export const BUILTIN_PLUGINS = [
     defaultEnabled: true,
   },
   {
-    name: "account-pool",
-    pluginId: "account-pool",
-    defaultEnabled: accountPoolDefaultEnabled(),
-  },
-  {
     name: "ask-user-question",
     pluginId: "ask-user-question",
     defaultEnabled: false,
@@ -57,21 +43,6 @@ export const BUILTIN_PLUGINS = [
   {
     name: "automations",
     pluginId: "automations",
-    defaultEnabled: true,
-  },
-  {
-    name: "bb-account",
-    pluginId: "bb-account",
-    defaultEnabled: true,
-  },
-  {
-    name: "bb-ai",
-    pluginId: "bb-ai",
-    defaultEnabled: true,
-  },
-  {
-    name: "connect",
-    pluginId: "connect",
     defaultEnabled: true,
   },
   {
@@ -132,7 +103,7 @@ export const BUILTIN_PLUGINS = [
   {
     name: "provider-usage",
     pluginId: "bb--provider-usage",
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     name: "provider-acp",
@@ -157,11 +128,6 @@ export const BUILTIN_PLUGINS = [
   {
     name: "provider-retry",
     pluginId: "provider-retry",
-    defaultEnabled: true,
-  },
-  {
-    name: "push-notifications",
-    pluginId: "push-notifications",
     defaultEnabled: true,
   },
   {
@@ -220,11 +186,6 @@ export const BUILTIN_PLUGINS = [
 }));
 
 export const OFFICIAL_PLUGINS = [
-  {
-    name: "environment-modal-sandbox",
-    pluginId: "environment-modal-sandbox",
-    defaultEnabled: true,
-  },
   {
     name: "browser-automation",
     pluginId: "browser-automation",

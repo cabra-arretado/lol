@@ -19,10 +19,7 @@ import {
   parseBundledMarketplaceManifestJson,
 } from "../../../src/services/plugin-catalog/marketplace-manifest.js";
 import { loadBundledMarketplace } from "../../../src/services/plugin-catalog/bundled-marketplace.js";
-import {
-  accountPoolDefaultEnabled,
-  BUNDLED_PLUGINS,
-} from "../../../src/services/plugins/builtin-registry.js";
+import { BUNDLED_PLUGINS } from "../../../src/services/plugins/builtin-registry.js";
 
 const run = promisify(execFile);
 const cleanup: string[] = [];
@@ -113,9 +110,7 @@ describe("bb-official marketplace generator", () => {
               onByDefault:
                 plugin !== undefined &&
                 plugin.autoInstall &&
-                (plugin.name === "account-pool"
-                  ? accountPoolDefaultEnabled({})
-                  : plugin.defaultEnabled),
+                plugin.defaultEnabled,
               ...(entry.publishedAt === undefined
                 ? {}
                 : { publishedAt: entry.publishedAt }),

@@ -15,7 +15,7 @@ pnpm exec turbo run dev --filter=@bb/desktop
 
 The dev script builds `bb-app`, compiles the Electron main/preload files, and
 opens Electron directly. By default it uses the same checkout-scoped
-`~/.bb-dev/<checkout-instance>` data directory and deterministic high ports as
+`~/.lol-dev/<checkout-instance>` data directory and deterministic high ports as
 `pnpm dev`; it prints the resolved data dir, server URL, and
 Electron user-data dir at startup. It intentionally overwrites inherited
 `BB_DATA_DIR`, `BB_SERVER_PORT`, `BB_SERVER_URL`, and `BB_HOST_DAEMON_PORT` so a
@@ -323,7 +323,7 @@ npx bb-app@nightly
 
 Stable and nightly desktop bundles can coexist. Electron-owned preferences,
 window state, and process supervision use separate application data
-directories; the embedded bb runtime still uses the normal `~/.bb` data and
+directories; the embedded bb runtime still uses the normal `~/.lol` data and
 default server port unless the corresponding environment variables are
 overridden.
 
@@ -411,7 +411,7 @@ BB_DESKTOP_OPEN_DEVTOOLS=1 apps/desktop/release/mac-arm64/bb.app/Contents/MacOS/
 ```
 
 When the desktop app spawns `bb-app`, server and daemon logs land under
-`~/.bb/logs/` or `$BB_DATA_DIR/logs/` when `BB_DATA_DIR` is set.
+`~/.lol/logs/` or `$BB_DATA_DIR/logs/` when `BB_DATA_DIR` is set.
 
 To verify attach-if-found manually, start a compatible bb first, then launch the
 desktop app:
@@ -518,7 +518,7 @@ The native menus, renderer Server popup, and app palette use the same choices.
 
 ### Server moves
 
-After `bb server move`, the old computer's data dir (`~/.bb` or
+After `bb server move`, the old computer's data dir (`~/.lol` or
 `$BB_DATA_DIR`) contains `server-moved.json`. The desktop app reads it at
 startup, whenever the built-in server target loads, and while that target is active.
 While the target is active, the app watches the data dir. If `fs.watch` fails,

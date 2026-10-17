@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { delimiter } from "node:path";
-import { defaultFeatureFlags } from "@bb/domain";
+import { assertCapabilityAllowed, defaultFeatureFlags } from "@bb/domain";
 import { DEFAULTS } from "./defaults.js";
 import {
   APP_UPDATE_MODE_ENV_NAME,
@@ -137,7 +137,11 @@ function parsePortEnvValue(args: EnvVarParseArgs): number {
 
 export function parseServerBindHost(value: string): ServerBindHost {
   const trimmedValue = value.trim();
-  if (trimmedValue === "127.0.0.1" || trimmedValue === "0.0.0.0") {
+  if (trimmedValue === "127.0.0.1") {
+    return trimmedValue;
+  }
+  if (trimmedValue === "0.0.0.0") {
+    assertCapabilityAllowed("nonLoopbackBind");
     return trimmedValue;
   }
 
@@ -416,3 +420,17 @@ export const DEFAULT_BB_MARKETPLACE_URL =
 export const DEFAULT_BB_FF_PLACEHOLDER = defaultFeatureFlags.placeholder;
 export const DEFAULT_BB_FF_TIMELINE_WINDOW_EVENT_BUDGET =
   defaultFeatureFlags.timelineWindowEventBudget;
+
+function parseHostListEnvValue(args: EnvVarParseArgs): string[] {
+  return args.value
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
+export const BB_EGRESS_ALLOWED_HOSTS_ENV = defineEnvVar<string[]>({
+  description:
+    "Comma-separated hostnames or IP addresses the server and host daemon processes may connect to besides loopback. Every other outbound connection from those processes is refused. Entries starting with a dot also match subdomains.",
+  name: "BB_EGRESS_ALLOWED_HOSTS",
+  parse: parseHostListEnvValue,
+});

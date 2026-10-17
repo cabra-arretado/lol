@@ -232,6 +232,7 @@ export async function createTestAppHarness(
   };
   const config: ServerRuntimeConfig = {
     appVersion: "0.0.0-test",
+    isCapabilityAllowed: () => true,
     builtinSkillsRootPath: join(dataDir, "builtin-skills"),
     customModels: [],
     dataDir,

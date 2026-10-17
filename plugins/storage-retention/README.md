@@ -15,7 +15,7 @@ small files, from archived, stopped, unpinned threads in the scan. Bulk clearing
 keeps conversations and uploaded attachments and requires confirmation. The
 matching CLI command is `bb storage clear-archived-files --machine HOST_ID --yes`.
 
-The Clean up section offers Remove instances for `~/.bb-dev` entries whose
+The Clean up section offers Remove instances for `~/.lol-dev` entries whose
 source checkout no longer exists. The host re-verifies each checkout is missing,
 stops processes whose working directory is inside it, then removes the entry. The
 matching CLI command is `bb storage remove-dev-instances --machine HOST_ID --yes`.
@@ -55,7 +55,7 @@ existing and unidentified sources. Both are available through `bb storage retent
 
 Development cleanup reconciles filesystem state on plugin startup, machine
 reconnect, and hourly. `experimental_environment.removed` re-measures only the
-removing machine's `~/.bb-dev`, queued behind any cleanup already
+removing machine's `~/.lol-dev`, queued behind any cleanup already
 running there; missed events need no replay or removal-history tables.
 Offline/busy machines and failed cleanup retry on subsequent scans. Provider
 removal success does not prove the path was deleted; the host always checks

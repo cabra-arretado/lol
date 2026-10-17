@@ -14,6 +14,7 @@ export * from "./completed-turn-display.js";
 export * from "./debounced-callback-scheduler.js";
 export * from "./environment-lifecycle.js";
 export * from "./environment.js";
+export * from "./capability-policy.js";
 export * from "./experiments.js";
 export * from "./feature-flags.js";
 export * from "./git-checkout.js";

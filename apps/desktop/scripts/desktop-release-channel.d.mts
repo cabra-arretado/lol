@@ -8,15 +8,15 @@ export interface DesktopUpdateMetadataFileNames {
 }
 
 export interface DesktopReleaseConfig {
-  appId: "dev.bb.desktop" | "dev.bb.desktop.nightly";
-  applicationName: "bb" | "bb Nightly";
+  appId: "dev.lol.desktop" | "dev.lol.desktop.nightly";
+  applicationName: "lol" | "lol Nightly";
   artifactName: string;
   iconFileName: "icon.png" | "icon-nightly.png";
-  linuxExecutableName: "bb" | "bb-nightly";
+  linuxExecutableName: "lol" | "lol-nightly";
   macIconPath: "assets/icon.icns" | "assets/icon-nightly.icns";
   releaseTag: "desktop-latest" | "desktop-nightly";
   updateMetadataFileNames: DesktopUpdateMetadataFileNames;
-  windowsInstallName: "bb" | "bb-nightly";
+  windowsInstallName: "lol" | "lol-nightly";
 }
 
 export function resolveDesktopReleaseChannel(

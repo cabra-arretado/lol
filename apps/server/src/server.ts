@@ -1,3 +1,9 @@
+import {
+  assertCapabilityAllowed,
+  capabilityGuardedFetch,
+  isCapabilityAllowed,
+} from "@bb/domain";
+import { publicMarketplaceFetch } from "./services/plugin-catalog/marketplace-http.js";
 import { createPluginUpdateJobs } from "./services/plugins/plugin-update-jobs.js";
 import { registerPluginUpdateJobRoutes } from "./routes/plugin-update-jobs.js";
 import { recheckEnvironmentProvisioning } from "./services/threads/thread-environment-providers.js";
@@ -243,6 +249,9 @@ function staticCacheControlForPath(urlPath: string): string {
   return STATIC_PUBLIC_FILE_CACHE_CONTROL;
 }
 
+const LOCAL_CONTENT_SECURITY_POLICY =
+  "img-src 'self' data: blob:; media-src 'self' data: blob:";
+
 function createStaticResponseHeaders(args: StaticResponseHeadersArgs): Headers {
   const headers = new Headers();
   headers.set("content-type", args.contentType);
@@ -256,6 +265,12 @@ function createStaticResponseHeaders(args: StaticResponseHeadersArgs): Headers {
   }
   if (args.contentLength !== undefined) {
     headers.set("content-length", String(args.contentLength));
+  }
+  if (
+    args.contentType === "text/html" &&
+    !isCapabilityAllowed("remoteContentInPreviews")
+  ) {
+    headers.set("content-security-policy", LOCAL_CONTENT_SECURITY_POLICY);
   }
   return headers;
 }
@@ -546,6 +561,20 @@ export function createApp(
       ...(serverMove === null ? {} : { serverMove }),
     });
   });
+  for (const path of [
+    "/install.sh",
+    "/install.ps1",
+    "/install/version",
+    "/install/bb-app.tgz",
+  ]) {
+    app.use(path, async (_context, next) => {
+      assertCapabilityAllowed(
+        "remoteHostEnrollment",
+        deps.config.isCapabilityAllowed,
+      );
+      await next();
+    });
+  }
   app.get("/install.sh", async (context) => {
     const script = await readFile(INSTALL_MACHINE_SCRIPT_PATH, "utf8");
     const credential = context.req.header("X-BB-Enrollment");
@@ -869,6 +898,11 @@ export function createApp(
     db: deps.db,
     appVersion: deps.config.appVersion,
     marketplaceUrl: deps.config.marketplaceUrl,
+    fetch: capabilityGuardedFetch(
+      "remoteMarketplace",
+      publicMarketplaceFetch,
+      deps.config.isCapabilityAllowed,
+    ),
     dataDir: deps.config.dataDir,
     plugins: pluginService,
     notifyCatalogChanged: () => deps.hub.notifySystem(["plugins-changed"]),
@@ -898,6 +932,7 @@ export function createApp(
     publicApi,
     pluginCatalogService,
     pluginInstallJobs,
+    deps.config.isCapabilityAllowed,
   );
   registerPluginRoutes(
     publicApi,

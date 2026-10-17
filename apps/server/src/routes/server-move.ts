@@ -4,7 +4,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { getExperiments } from "@bb/db";
-import type { LastServerMove } from "@bb/domain";
+import { assertCapabilityAllowed, type LastServerMove } from "@bb/domain";
 import {
   readLastServerMoveFile,
   writeLastServerMoveFile,
@@ -49,6 +49,7 @@ export const SERVER_MOVE_EXPERIMENT_DISABLED_MESSAGE =
   'Moving the server is off. Turn on the "Server move" experiment in Settings → Experiments, or run bb settings experiment serverMove true, then try again.';
 
 function assertServerMoveExperimentEnabled(deps: AppDeps): void {
+  assertCapabilityAllowed("serverMove", deps.config.isCapabilityAllowed);
   if (!getExperiments(deps.db).serverMove) {
     throw new ApiError(
       403,
