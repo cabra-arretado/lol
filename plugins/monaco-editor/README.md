@@ -18,6 +18,9 @@ panel's file search, and `bb thread open`.
   decision. Undo stays available until you edit, save, reload, or leave the file.
 - **Find in file** with <kbd>⌘F</kbd>, plus Monaco's usual editing: multiple
   cursors, block selection, bracket matching, code folding.
+- **Vim mode** (off by default). Turn on **Vim mode** in the plugin's settings,
+  or run `bb plugin config monaco-editor set vimMode true`, for Vim normal,
+  insert, and visual modes, a mode line under the editor, and `:w` to save.
 - **Syntax highlighting** for ~86 common file types.
 - **File tree.** Toggle it from the file bar to browse the project, filter by
   path, expand and collapse directories, and jump to another file. It opens

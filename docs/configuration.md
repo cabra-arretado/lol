@@ -1032,6 +1032,16 @@ bb plugin config provider-retry set maximumWait "24 hours"
 Disable it with `bb plugin disable provider-retry`. See the `provider-retry`
 skill.
 
+### File Editor plugin
+
+The builtin File Editor plugin (`monaco-editor`) opens files in Monaco. Its
+`vimMode` setting (default `false`) turns on Vim keybindings, with a mode line
+under the editor and `:w` to save:
+
+```bash
+bb plugin config monaco-editor set vimMode true
+```
+
 ### Workflows plugin
 
 The builtin Workflows plugin is disabled on fresh installations

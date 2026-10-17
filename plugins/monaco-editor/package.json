@@ -48,6 +48,7 @@
   "dependencies": {
     "@bb/shared-ui": "workspace:*",
     "monaco-editor": "^0.56.0",
+    "monaco-vim": "^0.4.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {

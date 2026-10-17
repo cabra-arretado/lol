@@ -21,8 +21,26 @@ const shared = {
   loader: { ".ttf": "dataurl" },
 };
 
+const monacoEsm = path.join(
+  path.dirname(require.resolve("monaco-editor/editor/editor.api.js")),
+  "..",
+);
 const editor = await esbuild.build({
   ...shared,
+  alias: {
+    "monaco-editor/esm/vs/editor/editor.api": path.join(
+      monacoEsm,
+      "editor",
+      "editor.api.js",
+    ),
+    "monaco-editor/esm/vs/editor/common/commands/shiftCommand": path.join(
+      monacoEsm,
+      "editor",
+      "common",
+      "commands",
+      "shiftCommand.js",
+    ),
+  },
   entryPoints: [path.join(pluginRoot, "monaco-bundle", "editor.js")],
   outfile: path.join(outDir, "editor.js"),
   metafile: true,

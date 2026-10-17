@@ -1,17 +1,49 @@
 import type * as MonacoNs from "monaco-editor";
 
-let bootPromise: Promise<typeof MonacoNs> | null = null;
 
-export function loadMonaco(baseUrl: string): Promise<typeof MonacoNs> {
+export interface VimModeHandle {
+  dispose(): void;
+}
+
+export type InitVimMode = (
+  editor: MonacoNs.editor.IStandaloneCodeEditor,
+  statusNode: HTMLElement,
+) => VimModeHandle;
+
+interface LoadedEditor {
+  monaco: typeof MonacoNs;
+  initVimMode: InitVimMode;
+  defineExCommand: (name: string, shorthand: string, run: () => void) => void;
+}
+
+let bootPromise: Promise<LoadedEditor> | null = null;
+
+export async function loadMonaco(baseUrl: string): Promise<typeof MonacoNs> {
+  return (await loadEditor(baseUrl)).monaco;
+}
+
+export async function loadVimMode(
+  baseUrl: string,
+): Promise<Pick<LoadedEditor, "initVimMode" | "defineExCommand">> {
+  return loadEditor(baseUrl);
+}
+
+function loadEditor(baseUrl: string): Promise<LoadedEditor> {
   bootPromise ??= boot(baseUrl);
   return bootPromise;
 }
 
 interface MonacoModule {
   monaco?: typeof MonacoNs;
+  initVimMode?: InitVimMode;
+  VimMode?: {
+    Vim: {
+      defineEx(name: string, shorthand: string, run: () => void): void;
+    };
+  };
 }
 
-async function boot(baseUrl: string): Promise<typeof MonacoNs> {
+async function boot(baseUrl: string): Promise<LoadedEditor> {
   await injectStylesheet(`${baseUrl}/editor.css`);
 
   (globalThis as { MonacoEnvironment?: unknown }).MonacoEnvironment = {
@@ -27,12 +59,17 @@ async function boot(baseUrl: string): Promise<typeof MonacoNs> {
   const loaded: MonacoModule = await import(
     /* @vite-ignore */ `${baseUrl}/editor.js`
   );
-  const monaco = loaded.monaco;
-  if (!monaco) {
+  const { monaco, initVimMode, VimMode } = loaded;
+  if (!monaco || !initVimMode || !VimMode) {
     throw new Error("the Monaco bundle did not expose its API");
   }
   registerOccurrenceHighlighting(monaco);
-  return monaco;
+  return {
+    monaco,
+    initVimMode,
+    defineExCommand: (name, shorthand, run) =>
+      VimMode.Vim.defineEx(name, shorthand, run),
+  };
 }
 
 function registerOccurrenceHighlighting(monaco: typeof MonacoNs): void {

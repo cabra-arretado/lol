@@ -3,6 +3,7 @@ import {
   definePluginApp,
   experimental_useCodeTheme,
   useRpc,
+  useSettings,
   type PluginFileOpenerProps,
 } from "@get-bb/plugin-sdk/app";
 import type * as MonacoNs from "monaco-editor";
@@ -11,6 +12,7 @@ import type { rpcContract } from "./server.js";
 import { CLAIMED_EXTENSIONS, languageForPath } from "./lib/languages.js";
 import {
   loadMonaco,
+  loadVimMode,
   overflowWidgetsNode,
   setOverflowWidgetsTheme,
 } from "./lib/monaco-loader.js";
@@ -70,6 +72,8 @@ function MonacoFileOpener({
   const codeTheme = experimental_useCodeTheme();
   const codeThemeRef = useRef(codeTheme);
   codeThemeRef.current = codeTheme;
+  const vimEnabled = useSettings().values?.vimMode === true;
+  const vimStatusRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const conflictNoticeRef = useRef<HTMLDivElement | null>(null);
   const monacoRef = useRef<typeof MonacoNs | null>(null);
@@ -359,6 +363,41 @@ function MonacoFileOpener({
   }, [activePath, path, experimental_lineRange]);
 
   useEffect(() => {
+    const editor = editorRef.current;
+    const statusNode = vimStatusRef.current;
+    if (!vimEnabled || status.kind !== "ready" || !editor || !statusNode) {
+      return;
+    }
+    let disposed = false;
+    let vim: { dispose(): void } | null = null;
+    void (async () => {
+      try {
+        const { baseUrl } = await rpc.call("assets");
+        const { initVimMode, defineExCommand } = await loadVimMode(baseUrl);
+        if (disposed) return;
+        defineExCommand("write", "w", () => void saveRef.current());
+        vim = initVimMode(editor, statusNode);
+      } catch (error) {
+        if (disposed) return;
+        setStatus({
+          kind: "error",
+          message:
+            error instanceof Error ? error.message : "Could not start Vim mode",
+        });
+      }
+    })();
+    return () => {
+      disposed = true;
+      try {
+        vim?.dispose();
+      } catch {
+        vim = null;
+      }
+      statusNode.textContent = "";
+    };
+  }, [vimEnabled, status.kind, activePath, rpc]);
+
+  useEffect(() => {
     const monaco = monacoRef.current;
     if (monaco === null) return;
     const applied = applyCodeTheme(monaco, codeTheme);
@@ -419,6 +458,11 @@ function MonacoFileOpener({
         status={status}
       />
       <div ref={containerRef} className="min-h-0 flex-1" />
+      <div
+        ref={vimStatusRef}
+        hidden={!vimEnabled}
+        className="shrink-0 border-t border-border px-4 py-0.5 font-mono text-xs text-muted-foreground empty:hidden"
+      />
     </div>
   );
 }
