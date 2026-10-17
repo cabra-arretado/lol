@@ -83,7 +83,7 @@ export function OnboardingLayout({
       >
         <img
           src={bbLogoUrl}
-          alt="bb"
+          alt="lol"
           draggable={false}
           className="h-5 w-6 shrink-0 select-none object-contain dark:invert"
         />
