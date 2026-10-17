@@ -36,6 +36,7 @@ type AcpCompactionOutcome =
 
 export interface AcpDialect {
   readonly id: string;
+  readonly oneTimeApprovalsOnly?: boolean;
   toolIdentity?(event: AcpToolCallUpdateEvent): AcpToolIdentity | undefined;
   classifyToolCall?(
     event: AcpToolCallUpdateEvent,
@@ -449,12 +450,18 @@ export const OPENCODE_ACP_DIALECT: AcpDialect = {
   normalizeCommandEvent: normalizeOpenCodeCommandEvent,
 };
 
+export const KIRO_ACP_DIALECT: AcpDialect = {
+  id: "kiro",
+  oneTimeApprovalsOnly: true,
+};
+
 const BUILT_IN_DIALECTS: readonly AcpDialect[] = [
   GENERIC_ACP_DIALECT,
   CURSOR_ACP_DIALECT,
   GROK_ACP_DIALECT,
   OMP_ACP_DIALECT,
   OPENCODE_ACP_DIALECT,
+  KIRO_ACP_DIALECT,
 ];
 
 const DIALECTS_BY_ID = new Map<string, AcpDialect>(
@@ -476,6 +483,7 @@ export function registerAcpDialect(dialect: AcpDialect): void {
 const DIALECT_IDS_BY_COMMAND: Readonly<Record<string, string>> = {
   "cursor-agent": CURSOR_ACP_DIALECT.id,
   grok: GROK_ACP_DIALECT.id,
+  "kiro-cli": KIRO_ACP_DIALECT.id,
   omp: OMP_ACP_DIALECT.id,
   opencode: OPENCODE_ACP_DIALECT.id,
 };

@@ -330,6 +330,7 @@ describe("acpProviderDeclaration", () => {
       "--agent-engine=v3",
       "--auth-method=cli",
     ]);
+    expect(kiro.dialect).toBe("kiro");
     expect(kiro.launch.nativeReasoning?.configId).toBe("effortLevel");
     const declaration = acpProviderDeclaration(kiro);
     expect(declaration.experimental_visibility).toBe("installed");

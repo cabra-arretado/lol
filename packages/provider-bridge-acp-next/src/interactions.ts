@@ -132,13 +132,14 @@ function permissionReason(
 
 export function buildAcpApprovalDecisions(
   options: readonly { kind: AcpPermissionOptionKind }[],
+  oneTimeOnly = false,
 ): PendingInteractionApprovalDecision[] {
   const kinds = new Set(options.map((option) => option.kind));
   const decisions: PendingInteractionApprovalDecision[] = [];
   if (kinds.has("allow_once")) {
     decisions.push("allow_once");
   }
-  if (kinds.has("allow_always")) {
+  if (!oneTimeOnly && kinds.has("allow_always")) {
     decisions.push("allow_for_session");
   }
   if (kinds.has("reject_once") || kinds.has("reject_always")) {
@@ -152,10 +153,14 @@ export function buildAcpPermissionInteractionPayload(args: {
   options: readonly { kind: AcpPermissionOptionKind }[];
   cwd?: string | undefined;
   classifyToolCall?: AcpDialectToolCallClassifier | undefined;
+  oneTimeApprovalsOnly?: boolean | undefined;
 }): PendingInteractionPayload {
   const toolCall = args.toolCall;
   const pathOptions = { cwd: args.cwd };
-  const availableDecisions = buildAcpApprovalDecisions(args.options);
+  const availableDecisions = buildAcpApprovalDecisions(
+    args.options,
+    args.oneTimeApprovalsOnly === true,
+  );
   const reason = permissionReason(toolCall) ?? null;
   const operation = toolCall
     ? classifyAcpPermission(toolCall, pathOptions)

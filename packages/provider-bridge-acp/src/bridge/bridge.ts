@@ -1563,6 +1563,7 @@ function handlePermissionRequest(
     options: parsed.data.options,
     cwd: session.cwd,
     classifyToolCall: session.dialect.classifyToolCall,
+    oneTimeApprovalsOnly: session.dialect.oneTimeApprovalsOnly,
   });
   void sendRuntimeRequest(BRIDGE_INBOUND_REQUEST_METHODS.interactionRequest, {
     providerThreadId: session.providerThreadId,
