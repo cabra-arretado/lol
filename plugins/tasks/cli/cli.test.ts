@@ -100,6 +100,92 @@ describe("bb tasks CLI", () => {
     await harness.dispose();
   });
 
+  it("adds, checks, lists, and deletes ticket and standalone todos", async () => {
+    const { bb, harness } = createFakePluginHost({ pluginId: "tasks" });
+    await plugin(bb);
+    stdout(
+      await harness.runCli([
+        "project",
+        "create",
+        "--name",
+        "Todo Project",
+        "--prefix",
+        "TDO",
+        "--json",
+      ]),
+    );
+    stdout(
+      await harness.runCli([
+        "create",
+        "--project",
+        "TDO",
+        "--title",
+        "Ticket",
+        "--json",
+      ]),
+    );
+
+    const added = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "add",
+          "Write tests",
+          "--task",
+          "tdo-1",
+          "--json",
+        ]),
+      ),
+    );
+    const loose = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "add",
+          "Buy milk",
+          "--due",
+          "2026-12-01",
+          "--json",
+        ]),
+      ),
+    );
+    expect(added.todo).toMatchObject({ title: "Write tests", done: false });
+    expect(loose.todo).toMatchObject({ taskId: null, dueDate: "2026-12-01" });
+
+    const standalone = JSON.parse(
+      stdout(await harness.runCli(["todo", "list", "--standalone", "--json"])),
+    );
+    expect(
+      standalone.todos.map((todo: { title: string }) => todo.title),
+    ).toEqual(["Buy milk"]);
+
+    stdout(await harness.runCli(["todo", "done", added.todo.id]));
+    const open = JSON.parse(
+      stdout(await harness.runCli(["todo", "list", "--json"])),
+    );
+    expect(open.todos.map((todo: { title: string }) => todo.title)).toEqual([
+      "Buy milk",
+    ]);
+    const all = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "list",
+          "--all",
+          "--task",
+          "TDO-1",
+          "--json",
+        ]),
+      ),
+    );
+    expect(all.todos).toMatchObject([{ title: "Write tests", done: true }]);
+
+    stdout(await harness.runCli(["todo", "delete", loose.todo.id]));
+    expect(stdout(await harness.runCli(["todo", "list"]))).toBe("No todos");
+
+    await harness.dispose();
+  });
+
   it("runs create, list, show, update, and comment through case-insensitive key addressing", async () => {
     const { bb, harness } = createFakePluginHost({
       pluginId: "tasks",

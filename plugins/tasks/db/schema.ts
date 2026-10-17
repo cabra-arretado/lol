@@ -242,6 +242,20 @@ const MIGRATIONS = [
     ALTER TABLE presets DROP COLUMN service_tier;
     ALTER TABLE presets RENAME COLUMN service_tier_open TO service_tier;
   `,
+  `
+    CREATE TABLE todos (
+      id TEXT PRIMARY KEY,
+      task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+      title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+      done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1)),
+      due_date TEXT CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+      position REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_todos_task ON todos(task_id, position);
+    CREATE INDEX idx_todos_open ON todos(done, due_date, position);
+  `,
 ] as const;
 
 export function initializeTasksSchema(db: PluginDatabase): void {

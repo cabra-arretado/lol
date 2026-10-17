@@ -267,3 +267,33 @@ export interface UpdatePresetInput {
   instructions?: string;
   builtin?: boolean;
 }
+
+export interface Todo {
+  id: string;
+  taskId: string | null;
+  title: string;
+  done: boolean;
+  dueDate: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTodoInput {
+  taskId: string | null;
+  title: string;
+  dueDate: string | null;
+}
+
+export interface UpdateTodoInput {
+  title?: string;
+  done?: boolean;
+  dueDate?: string | null;
+}
+
+export interface TodoFilters {
+  taskId?: string;
+  standalone?: boolean;
+  projectId?: string;
+  done?: boolean;
+}

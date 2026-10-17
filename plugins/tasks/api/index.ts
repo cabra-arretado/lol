@@ -25,6 +25,7 @@ import {
   type TasksChangedEvent,
   type TasksDomainError,
   type CommentsChangedEvent,
+  type TodosChangedEvent,
   type CommentProvider,
 } from "../shared/contract";
 
@@ -185,6 +186,14 @@ export function publishProjectsChanged(
 ): void {
   const payload: ProjectsChangedEvent = { projectId };
   bb.realtime.publish("projects:changed", payload);
+}
+
+export function publishTodosChanged(
+  bb: BbPluginApi,
+  taskId: string | null,
+): void {
+  const payload: TodosChangedEvent = { taskId };
+  bb.realtime.publish("todos:changed", payload);
 }
 
 export function publishCommentsChanged(bb: BbPluginApi, taskId: string): void {
@@ -863,6 +872,44 @@ export function registerHandlers(
     },
     listLabels(input) {
       return { labels: store.tasks.listLabels(input.projectId) };
+    },
+    createTodo(input) {
+      const todo = store.transaction(() =>
+        store.tasks.createTodo({
+          taskId: input.taskId,
+          title: input.title,
+          dueDate: input.dueDate,
+        }),
+      );
+      publishTodosChanged(bb, todo.taskId);
+      return { todo };
+    },
+    updateTodo(input) {
+      const todo = store.transaction(() =>
+        store.tasks.updateTodo(input.todoId, {
+          title: input.title,
+          done: input.done,
+          dueDate: input.dueDate,
+        }),
+      );
+      publishTodosChanged(bb, todo.taskId);
+      return { todo };
+    },
+    deleteTodo(input) {
+      const todo = store.tasks.getTodo(input.todoId);
+      const deleted = store.tasks.deleteTodo(input.todoId);
+      if (deleted && todo) publishTodosChanged(bb, todo.taskId);
+      return { deleted };
+    },
+    listTodos(input) {
+      return { todos: store.tasks.listTodos(input) };
+    },
+    todoCounts(input) {
+      return {
+        counts: [...store.tasks.todoCounts(input.taskIds)].map(
+          ([taskId, count]) => ({ taskId, ...count }),
+        ),
+      };
     },
     async createComment(input) {
       const comment = await createComment(bb, store, {
