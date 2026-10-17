@@ -62,7 +62,7 @@ describe("tasks storage", () => {
             "SELECT COUNT(*) AS count FROM schema_version",
           )
           .get()?.count,
-      ).toBe(8);
+      ).toBe(9);
     } finally {
       await harness.dispose();
     }
@@ -877,6 +877,104 @@ describe("tasks storage", () => {
       expect(() => store.createPreset(preset)).toThrow(
         /UNIQUE constraint failed: presets.name/,
       );
+    } finally {
+      await harness.dispose();
+    }
+  });
+
+  it("stores ticket and standalone todos and counts progress", async () => {
+    const { harness, store } = setup();
+    try {
+      const project = createProject(store, "TDO");
+      const task = store.createTask({ projectId: project.id, title: "Task" });
+      const other = store.createTask({ projectId: project.id, title: "Other" });
+      const first = store.createTodo({
+        taskId: task.id,
+        title: "First",
+        dueDate: null,
+      });
+      const second = store.createTodo({
+        taskId: task.id,
+        title: "Second",
+        dueDate: "2026-11-01",
+      });
+      store.createTodo({ taskId: other.id, title: "Elsewhere", dueDate: null });
+      const loose = store.createTodo({
+        taskId: null,
+        title: "Loose",
+        dueDate: null,
+      });
+      expect(second.position).toBeGreaterThan(first.position);
+
+      store.updateTodo(first.id, { done: true });
+      expect(store.getTodo(first.id)?.done).toBe(true);
+      expect(store.listTodos({ taskId: task.id }).map((t) => t.title)).toEqual([
+        "First",
+        "Second",
+      ]);
+      expect(store.listTodos({ taskId: task.id })[0]?.taskKey).toBe("TDO-1");
+      expect(loose.taskKey).toBeNull();
+      expect(
+        store.listTodos({ standalone: true }).map((todo) => todo.id),
+      ).toEqual([loose.id]);
+      expect(
+        store
+          .listTodos({ projectId: project.id, done: false })
+          .map((todo) => todo.title),
+      ).toEqual(["Second", "Elsewhere"]);
+      expect(store.todoCounts([task.id, other.id, loose.id])).toEqual(
+        new Map([
+          [task.id, { total: 2, done: 1 }],
+          [other.id, { total: 1, done: 0 }],
+        ]),
+      );
+
+      expect(() =>
+        store.createTodo({ taskId: task.id, title: "  ", dueDate: null }),
+      ).toThrow(/Todo title/);
+      expect(() =>
+        store.createTodo({ taskId: task.id, title: "x", dueDate: "soon" }),
+      ).toThrow(/dueDate/);
+      expect(() =>
+        store.createTodo({
+          taskId: "01HZZZZZZZZZZZZZZZZZZZZZZZ",
+          title: "x",
+          dueDate: null,
+        }),
+      ).toThrow(/Task not found/);
+
+      store.deleteTask(task.id);
+      expect(store.getTodo(first.id)).toBeUndefined();
+      expect(store.getTodo(loose.id)).toBeDefined();
+    } finally {
+      await harness.dispose();
+    }
+  });
+
+  it("converts legacy description checklists exactly once at startup", async () => {
+    const { db, harness, store } = setup();
+    try {
+      const project = createProject(store, "LEG");
+      const task = store.createTask({
+        projectId: project.id,
+        title: "Legacy",
+        description: "Notes\n\n- [ ] first\n- [x] second\n",
+      });
+      db.prepare("DELETE FROM data_migrations").run();
+
+      const reopened = createTasksStore(db);
+      expect(
+        reopened.listTodos({ taskId: task.id }).map((t) => [t.title, t.done]),
+      ).toEqual([
+        ["first", false],
+        ["second", true],
+      ]);
+      expect(reopened.getTask(task.id)?.description).toBe("Notes\n");
+
+      reopened.updateTask(task.id, { description: "- [ ] again" });
+      createTasksStore(db);
+      expect(reopened.getTask(task.id)?.description).toBe("- [ ] again");
+      expect(reopened.listTodos({ taskId: task.id })).toHaveLength(2);
     } finally {
       await harness.dispose();
     }

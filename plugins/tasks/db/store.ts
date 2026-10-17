@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { z } from "zod";
+import { extractChecklist } from "../shared/checklist.js";
 import { initializeTasksSchema } from "./schema";
 import {
   TASKS_PAGE_DEFAULT_LIMIT,
@@ -19,6 +20,7 @@ import type {
   Comment,
   CreateAttachmentInput,
   CreateCommentInput,
+  CreateTodoInput,
   CreateFolderInput,
   CreateLabelInput,
   CreatePresetInput,
@@ -37,6 +39,8 @@ import type {
   TaskLabel,
   TaskThread,
   TaskThreadLiveStatus,
+  Todo,
+  TodoFilters,
   UpdateAttachmentInput,
   UpdateCommentInput,
   UpdateFolderInput,
@@ -45,6 +49,7 @@ import type {
   UpdateProjectInput,
   UpdateTaskInput,
   UpdateTaskPositionInput,
+  UpdateTodoInput,
   UpsertTaskThreadInput,
 } from "./types";
 
@@ -101,6 +106,24 @@ interface TaskPageRow extends TaskRow {
 
 interface TaskListRevisionRow {
   revision: number;
+}
+
+interface TodoRow {
+  id: string;
+  task_id: string | null;
+  task_key: string | null;
+  title: string;
+  done: number;
+  due_date: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TodoCountRow {
+  task_id: string;
+  total: number;
+  done: number;
 }
 
 interface LabelRow {
@@ -380,6 +403,27 @@ function labelFromRow(row: LabelRow): Label {
 
 function taskLabelFromRow(row: TaskLabelRow): TaskLabel {
   return { taskId: row.task_id, labelId: row.label_id };
+}
+
+const todoSelect = `
+  SELECT t.*, CASE WHEN k.id IS NULL THEN NULL ELSE p.prefix || '-' || k.number END AS task_key
+  FROM todos t
+  LEFT JOIN tasks k ON k.id = t.task_id
+  LEFT JOIN projects p ON p.id = k.project_id
+`;
+
+function todoFromRow(row: TodoRow): Todo {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    taskKey: row.task_key,
+    title: row.title,
+    done: row.done === 1,
+    dueDate: row.due_date,
+    position: row.position,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function commentFromRow(row: CommentRow): Comment {
@@ -1460,6 +1504,183 @@ export function createTasksStore(db: PluginDatabase) {
       .map(labelFromRow);
   }
 
+  function getTodo(id: string): Todo | undefined {
+    const row = db
+      .prepare<[string], TodoRow>(`${todoSelect} WHERE t.id = ?`)
+      .get(id);
+    return row ? todoFromRow(row) : undefined;
+  }
+
+  function requireTodo(id: string): Todo {
+    const todo = getTodo(id);
+    if (!todo) throw new Error(`Todo not found: ${id}`);
+    return todo;
+  }
+
+  function createTodo(input: CreateTodoInput): Todo {
+    const id = createUlid();
+    if (input.taskId !== null) requireTask(input.taskId);
+    const now = nowIso();
+    const last = db
+      .prepare<[string | null], { position: number | null }>(
+        "SELECT MAX(position) AS position FROM todos WHERE task_id IS ?",
+      )
+      .get(input.taskId);
+    db.prepare<
+      [string, string | null, string, string | null, number, string, string]
+    >(
+      `
+      INSERT INTO todos (
+        id, task_id, title, done, due_date, position, created_at, updated_at
+      ) VALUES (?, ?, ?, 0, ?, ?, ?, ?)
+    `,
+    ).run(
+      id,
+      input.taskId,
+      requireNonEmpty(input.title, "Todo title"),
+      validateDueDate(input.dueDate),
+      (last?.position ?? 0) + POSITION_STEP,
+      now,
+      now,
+    );
+    return requireTodo(id);
+  }
+
+  function updateTodo(id: string, input: UpdateTodoInput): Todo {
+    const current = requireTodo(id);
+    db.prepare<[string, number, string | null, string, string]>(
+      `
+      UPDATE todos SET title = ?, done = ?, due_date = ?, updated_at = ?
+      WHERE id = ?
+    `,
+    ).run(
+      input.title === undefined
+        ? current.title
+        : requireNonEmpty(input.title, "Todo title"),
+      (input.done ?? current.done) ? 1 : 0,
+      input.dueDate === undefined
+        ? current.dueDate
+        : validateDueDate(input.dueDate),
+      nowIso(),
+      id,
+    );
+    return requireTodo(id);
+  }
+
+  function deleteTodo(id: string): boolean {
+    return (
+      db.prepare<[string]>("DELETE FROM todos WHERE id = ?").run(id).changes > 0
+    );
+  }
+
+  function listTodos(filters: TodoFilters = {}): Todo[] {
+    const where: string[] = [];
+    const params: (string | number)[] = [];
+    if (filters.taskId !== undefined) {
+      where.push("t.task_id = ?");
+      params.push(filters.taskId);
+    }
+    if (filters.standalone === true) where.push("t.task_id IS NULL");
+    if (filters.projectId !== undefined) {
+      where.push("t.task_id IN (SELECT id FROM tasks WHERE project_id = ?)");
+      params.push(filters.projectId);
+    }
+    if (filters.done !== undefined) {
+      where.push("t.done = ?");
+      params.push(filters.done ? 1 : 0);
+    }
+    return db
+      .prepare<(string | number)[], TodoRow>(
+        `
+        ${todoSelect}
+        ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY ${
+          filters.taskId === undefined
+            ? "t.done, t.due_date IS NULL, t.due_date, t.task_id, t.position, t.id"
+            : "t.position, t.id"
+        }
+      `,
+      )
+      .all(...params)
+      .map(todoFromRow);
+  }
+
+  function todoCounts(
+    taskIds: readonly string[],
+  ): Map<string, { total: number; done: number }> {
+    const counts = new Map<string, { total: number; done: number }>();
+    if (taskIds.length === 0) return counts;
+    const rows = db
+      .prepare<string[], TodoCountRow>(
+        `
+        SELECT task_id, COUNT(*) AS total, SUM(done) AS done
+        FROM todos
+        WHERE task_id IN (${taskIds.map(() => "?").join(", ")})
+        GROUP BY task_id
+      `,
+      )
+      .all(...taskIds);
+    for (const row of rows) {
+      counts.set(row.task_id, { total: row.total, done: row.done });
+    }
+    return counts;
+  }
+
+  function importChecklistTodos(
+    taskId?: string,
+  ): { taskId: string; key: string; count: number }[] {
+    const candidates =
+      taskId === undefined
+        ? listTasksWithChecklistText()
+        : [getTask(taskId)].flatMap((task) => (task ? [task] : []));
+    return db.transaction(() => {
+      const results: { taskId: string; key: string; count: number }[] = [];
+      for (const task of candidates) {
+        const { items, description } = extractChecklist(task.description);
+        if (items.length === 0) continue;
+        for (const item of items) {
+          const todo = createTodo({
+            taskId: task.id,
+            title: item.title,
+            dueDate: null,
+          });
+          if (item.done) updateTodo(todo.id, { done: true });
+        }
+        updateTask(task.id, { description });
+        results.push({ taskId: task.id, key: task.key, count: items.length });
+      }
+      return results;
+    })();
+  }
+
+  function convertLegacyChecklistsOnce(): void {
+    db.transaction(() => {
+      const recorded = db
+        .prepare<[string], { found: number }>(
+          "SELECT 1 AS found FROM data_migrations WHERE name = ?",
+        )
+        .get("checklists-to-todos");
+      if (recorded) return;
+      importChecklistTodos();
+      db.prepare<[string, string]>(
+        "INSERT INTO data_migrations (name, applied_at) VALUES (?, ?)",
+      ).run("checklists-to-todos", nowIso());
+    })();
+  }
+
+  function listTasksWithChecklistText(): Task[] {
+    return db
+      .prepare<[], TaskRow>(
+        `
+        ${taskSelect}
+        WHERE t.description LIKE '%[ ]%' OR t.description LIKE '%[x]%'
+        ORDER BY t.created_at, t.id
+      `,
+      )
+      .all()
+      .map(taskFromRow);
+  }
+
   function getComment(id: string): Comment | undefined {
     const row = getCommentRow.get(id);
     return row ? commentFromRow(row) : undefined;
@@ -1897,6 +2118,8 @@ export function createTasksStore(db: PluginDatabase) {
     );
   }
 
+  convertLegacyChecklistsOnce();
+
   return {
     createFolder,
     getFolder,
@@ -1927,6 +2150,13 @@ export function createTasksStore(db: PluginDatabase) {
     removeTaskLabel,
     listTaskLabels,
     listLabelsForTask,
+    createTodo,
+    getTodo,
+    updateTodo,
+    deleteTodo,
+    listTodos,
+    todoCounts,
+    importChecklistTodos,
     createComment,
     getComment,
     listComments,

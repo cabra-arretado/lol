@@ -124,6 +124,20 @@ const taskSchema = z
   })
   .strict();
 
+const todoSchema = z
+  .object({
+    id: idSchema,
+    taskId: idSchema.nullable(),
+    taskKey: z.string().nullable(),
+    title: z.string(),
+    done: z.boolean(),
+    dueDate: dueDateSchema.nullable(),
+    position: z.number(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .strict();
+
 const labelSchema = z
   .object({
     id: idSchema,
@@ -564,6 +578,78 @@ export const tasksRpcContract = defineRpcContract({
     input: z.object({ projectId: idSchema }).strict(),
     output: z.object({ labels: z.array(labelSchema) }).strict(),
   },
+  createTodo: {
+    input: z
+      .object({
+        taskId: idSchema.nullable(),
+        title: nonBlankStringSchema,
+        dueDate: dueDateSchema.nullable().default(null),
+      })
+      .strict(),
+    output: z.object({ todo: todoSchema }).strict(),
+  },
+  updateTodo: {
+    input: z
+      .object({
+        todoId: idSchema,
+        title: nonBlankStringSchema.optional(),
+        done: z.boolean().optional(),
+        dueDate: dueDateSchema.nullable().optional(),
+      })
+      .strict(),
+    output: z.object({ todo: todoSchema }).strict(),
+  },
+  deleteTodo: {
+    input: z.object({ todoId: idSchema }).strict(),
+    output: z.object({ deleted: z.boolean() }).strict(),
+  },
+  listTodos: {
+    input: z
+      .object({
+        taskId: idSchema.optional(),
+        standalone: z.boolean().optional(),
+        projectId: idSchema.optional(),
+        done: z.boolean().optional(),
+      })
+      .strict()
+      .refine((input) => input.taskId === undefined || !input.standalone, {
+        path: ["standalone"],
+        message: "taskId and standalone cannot be combined",
+      }),
+    output: z.object({ todos: z.array(todoSchema) }).strict(),
+  },
+  importChecklistTodos: {
+    input: z.object({ taskId: idSchema.optional() }).strict(),
+    output: z
+      .object({
+        converted: z.array(
+          z
+            .object({
+              taskId: idSchema,
+              key: z.string(),
+              count: z.number().int().positive(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+  },
+  todoCounts: {
+    input: z.object({ taskIds: z.array(idSchema).max(500) }).strict(),
+    output: z
+      .object({
+        counts: z.array(
+          z
+            .object({
+              taskId: idSchema,
+              total: z.number().int().nonnegative(),
+              done: z.number().int().nonnegative(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+  },
   createComment: {
     input: z
       .object({
@@ -735,6 +821,7 @@ export type TasksRpcContract = typeof tasksRpcContract;
 export type Folder = z.infer<typeof folderSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export type Task = z.infer<typeof taskSchema>;
+export type Todo = z.infer<typeof todoSchema>;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type Label = z.infer<typeof labelSchema>;
@@ -761,6 +848,10 @@ export interface TasksChangedEvent {
 
 export interface ProjectsChangedEvent {
   projectId: string | null;
+}
+
+export interface TodosChangedEvent {
+  taskId: string | null;
 }
 
 export interface CommentsChangedEvent {

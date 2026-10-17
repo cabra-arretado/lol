@@ -73,6 +73,7 @@ describe("tasks route grammar", () => {
       { kind: "all" },
       { kind: "active" },
       { kind: "manage" },
+      { kind: "todos" },
       { kind: "task", taskKey: "TSK-4" },
       { kind: "project", projectId: PROJECT_ID, view: "list" },
       { kind: "project", projectId: PROJECT_ID, view: "board" },

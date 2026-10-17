@@ -566,6 +566,19 @@ describe("delegation seed prompt", () => {
         task,
         project,
         subtasks: [subtask],
+        todos: [
+          {
+            id: "01J00000000000000000000009",
+            taskId: task.id,
+            taskKey: task.key,
+            title: "Cover the happy path",
+            done: false,
+            dueDate: "2026-12-01",
+            position: 1024,
+            createdAt: "2026-07-15T17:00:00.000Z",
+            updatedAt: "2026-07-15T17:00:00.000Z",
+          },
+        ],
         attachments: [
           {
             id: "01J00000000000000000000006",
@@ -594,6 +607,10 @@ describe("delegation seed prompt", () => {
 
       - TASK-2 · Add focused tests (in_progress)
 
+      ## Todos
+
+      - [ ] 01J00000000000000000000009 · Cover the happy path (due 2026-12-01)
+
       ## Attachments
 
       - delegation-notes.md · 01J00000000000000000000006
@@ -611,7 +628,7 @@ describe("delegation seed prompt", () => {
 
       ## Report-back contract
 
-      You are working on task TASK-1. Use the bb tasks CLI: comment substantive updates (bb tasks comment TASK-1 --body ...), attach result artifacts, set status when done (bb tasks update TASK-1 --status in_review) or explain blockage in a comment. Your thread is already attached to the task.
+      You are working on task TASK-1. Use the bb tasks CLI: comment substantive updates (bb tasks comment TASK-1 --body ...), check off todos (bb tasks todo done <todo-id>), attach result artifacts, set status when done (bb tasks update TASK-1 --status in_review) or explain blockage in a comment. Your thread is already attached to the task.
 
       ## Preset instructions
 

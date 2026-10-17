@@ -26,6 +26,7 @@ import {
   PropertiesRail,
   type TaskPropertyUpdate,
 } from "./rail.js";
+import { TodoList } from "../../components/todo-list.js";
 import { ThreadsSection } from "./threads.js";
 import { DetailToasts, useDetailToasts } from "./toast.js";
 import { DelayedLoading } from "@/components/ui/delayed-loading";
@@ -176,6 +177,64 @@ function SubTasksSection({
         <Icon name="Plus" className="size-3" />
         Add sub-task
       </button>
+    </section>
+  );
+}
+
+function TodosSection({
+  task,
+  onError,
+}: {
+  task: Task;
+  onError: (message: string) => void;
+}) {
+  const rpc = useTasksRpc();
+  const todos = useTasksQuery(
+    async (query) => (await query.call("listTodos", { taskId: task.id })).todos,
+    ["todos:changed"],
+    [task.id],
+    { relevantTaskIds: [task.id] },
+  );
+  const run = async (action: () => Promise<unknown>): Promise<boolean> => {
+    try {
+      await action();
+      todos.refresh();
+      return true;
+    } catch (caught) {
+      onError(errorMessage(caught));
+      return false;
+    }
+  };
+  const items = todos.data ?? [];
+  const done = items.filter((todo) => todo.done).length;
+  return (
+    <section className="mt-5">
+      <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <span>Todos</span>
+        {items.length > 0 ? (
+          <span>
+            {done}/{items.length}
+          </span>
+        ) : null}
+      </div>
+      <TodoList
+        todos={items}
+        placeholder="Add a todo…"
+        onAdd={(title, dueDate) =>
+          run(() => rpc.call("createTodo", { taskId: task.id, title, dueDate }))
+        }
+        onUpdate={(todo, patch) =>
+          void run(() => rpc.call("updateTodo", { todoId: todo.id, ...patch }))
+        }
+        onToggle={(todo) =>
+          void run(() =>
+            rpc.call("updateTodo", { todoId: todo.id, done: !todo.done }),
+          )
+        }
+        onDelete={(todo) =>
+          void run(() => rpc.call("deleteTodo", { todoId: todo.id }))
+        }
+      />
     </section>
   );
 }
@@ -431,7 +490,7 @@ function TaskDetail({ task }: { task: Task }) {
             onChange={onDescriptionChange}
             variant="doc"
             className="min-h-24"
-            placeholder="Add a description… rich text: headings, lists, code, checkboxes, @mentions"
+            placeholder="Add a description… rich text: headings, lists, code, @mentions"
             onUploadImage={uploadForTask}
             mentionItems={mentionItems}
             onOpenThread={(threadId) => navigate.toThread(threadId)}
@@ -480,6 +539,8 @@ function TaskDetail({ task }: { task: Task }) {
             }}
             onError={(message) => push(message)}
           />
+
+          <TodosSection task={task} onError={push} />
 
           <SubTasksSection
             ref={subtasksRef}

@@ -9,6 +9,7 @@ import {
   type TaskThread,
 } from "../db";
 import { displayName } from "../shared/display-name";
+import { formatTodos } from "../shared/todo-format";
 
 const SEARCH_LIMIT = 10;
 const RECENT_COMMENT_LIMIT = 5;
@@ -170,6 +171,10 @@ ${task.description.trim() || "No description provided."}
 
 ${formatSubtasks(store.tasks.listSubtasks(task.id))}
 
+## Todos
+
+${formatTodos(store.tasks.listTodos({ taskId: task.id }))}
+
 ## Attachments
 
 ${formatAttachments(attachments)}
@@ -184,7 +189,7 @@ ${formatThreads(store.tasks.listTaskThreads(task.id))}
 
 ## Action contract
 
-You can act on this task with the bb tasks CLI. If you begin working on it, first run: bb tasks attach ${task.key} (attaches THIS thread so the task shows you as working). Comment substantive updates via bb tasks comment ${task.key} --body ... and set status via bb tasks update ${task.key} --status ...
+You can act on this task with the bb tasks CLI. If you begin working on it, first run: bb tasks attach ${task.key} (attaches THIS thread so the task shows you as working). Comment substantive updates via bb tasks comment ${task.key} --body ... set status via bb tasks update ${task.key} --status ..., and check off todos via bb tasks todo done <todo-id>
 `;
 }
 

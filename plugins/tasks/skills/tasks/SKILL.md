@@ -143,3 +143,9 @@ each renders its own card.
   remaining risk or blocker.
 - Prefer stable task keys such as `ABC-12` for task commands. Use `--json` for
   machine-readable output and human output for quick inspection.
+
+## Todos
+
+Todos are checklist items. Under a task they track its steps (`bb tasks todo add "Write tests" --task ABC-12`); without `--task` they are standalone. `bb tasks todo list [--task ABC-12 | --standalone] [--all]` shows open todos (add `--all` for done ones), and `bb tasks todo done|undone|delete <todo-id>` and `bb tasks todo update <todo-id> [--title ...] [--due YYYY-MM-DD|--no-due]` change one by the ULID printed by `add` and `list`. Add todos for concrete steps of your task and check them off as you finish them; use subtasks for work that needs its own status.
+
+`bb tasks todo import --all` (or `--task <key>`) moves `- [ ]` / `- [x]` lines out of task descriptions into todos; existing checklists are also converted once automatically on upgrade.

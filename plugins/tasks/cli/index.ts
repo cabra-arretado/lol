@@ -86,6 +86,12 @@ const KEY_POSITIONAL = {
   required: true,
 } as const;
 
+const TODO_POSITIONAL = {
+  name: "todo-id",
+  description: "Todo ULID, as printed by `todo add` and `todo list`",
+  required: true,
+} as const;
+
 interface PluginStatus {
   name: string;
   version: string;
@@ -672,6 +678,29 @@ export function registerTasksCli(
   status: PluginStatus,
 ): void {
   const domain = registerHandlers(bb, store);
+
+  function todoToggleCommand(done: boolean) {
+    return cliCommand({
+      summary: done ? "Mark a todo done" : "Mark a todo not done",
+      positionals: [TODO_POSITIONAL],
+      options: { json: JSON_OPTION },
+      run(input) {
+        return guard(async () => {
+          const result = tasksRpcContract.updateTodo.output.parse(
+            await domain.updateTodo(
+              tasksRpcContract.updateTodo.input.parse({
+                todoId: input.positionals["todo-id"],
+                done,
+              }),
+            ),
+          );
+          return input.options.json
+            ? JSON.stringify(result)
+            : `${done ? "Checked" : "Unchecked"} todo ${result.todo.title}`;
+        });
+      },
+    });
+  }
   bb.cli.register(
     defineCli({
       name: "tasks",
@@ -1537,12 +1566,18 @@ export function registerTasksCli(
                     }),
                   ),
                 );
+              const todos = tasksRpcContract.listTodos.output.parse(
+                await domain.listTodos(
+                  tasksRpcContract.listTodos.input.parse({ taskId: task.id }),
+                ),
+              ).todos;
               if (input.options.json) {
                 return JSON.stringify({
                   task,
                   project,
                   labels,
                   subtasks,
+                  todos,
                   attachments,
                   taskThreads,
                   pullRequests,
@@ -1574,6 +1609,16 @@ export function registerTasksCli(
                     subtask.status,
                     subtask.priority,
                     subtask.title,
+                  ]),
+                  "(none)",
+                )}`,
+                `Todos\n${table(
+                  ["DONE", "ID", "DUE", "TITLE"],
+                  todos.map((todo) => [
+                    todo.done ? "x" : " ",
+                    todo.id,
+                    todo.dueDate ?? "-",
+                    todo.title,
                   ]),
                   "(none)",
                 )}`,
@@ -1910,6 +1955,204 @@ export function registerTasksCli(
               return input.options.json
                 ? JSON.stringify({ comment })
                 : `Commented on ${task.key}  ${comment.id}`;
+            });
+          },
+        }),
+
+        todo: groupCommand("todo", "Add, list, check, or delete todos", [
+          ["add", "Add a todo to a task or as a standalone todo"],
+          ["list", "List todos across tickets and standalone"],
+          ["done", "Mark a todo done"],
+          ["undone", "Mark a todo not done"],
+          ["update", "Rename a todo or change its due date"],
+          ["delete", "Delete a todo"],
+          ["import", "Convert `- [ ]` lines in descriptions into todos"],
+        ]),
+        "todo add": cliCommand({
+          summary: "Add a todo to a task, or a standalone todo without --task",
+          positionals: [
+            { name: "title", description: "Todo title", required: true },
+          ],
+          options: {
+            task: {
+              type: "string",
+              placeholder: "key-or-id",
+              description: "Task key or ULID; omit for a standalone todo",
+            },
+            due: {
+              type: "string",
+              placeholder: "YYYY-MM-DD",
+              aliases: ["due-date"],
+              description: "Due date as a calendar date, YYYY-MM-DD",
+            },
+            json: JSON_OPTION,
+          },
+          run(input) {
+            return guard(async () => {
+              const task =
+                input.options.task === undefined
+                  ? null
+                  : await resolveTask(domain, input.options.task);
+              const result = tasksRpcContract.createTodo.output.parse(
+                await domain.createTodo(
+                  tasksRpcContract.createTodo.input.parse({
+                    taskId: task?.id ?? null,
+                    title: input.positionals.title,
+                    dueDate: input.options.due ?? null,
+                  }),
+                ),
+              );
+              return input.options.json
+                ? JSON.stringify(result)
+                : `Added todo ${result.todo.id}${task ? `  ${task.key}` : ""}`;
+            });
+          },
+        }),
+        "todo list": cliCommand({
+          summary: "List todos; open ones first, due dates before undated",
+          options: {
+            task: {
+              type: "string",
+              placeholder: "key-or-id",
+              description: "Only todos of this task",
+            },
+            standalone: {
+              type: "boolean",
+              description: "Only todos that belong to no task",
+            },
+            all: {
+              type: "boolean",
+              description: "Include done todos (default lists open todos)",
+            },
+            json: JSON_OPTION,
+          },
+          constraints: [
+            { kind: "at-most-one", options: ["task", "standalone"] },
+          ],
+          run(input) {
+            return guard(async () => {
+              const task =
+                input.options.task === undefined
+                  ? undefined
+                  : await resolveTask(domain, input.options.task);
+              const result = tasksRpcContract.listTodos.output.parse(
+                await domain.listTodos(
+                  tasksRpcContract.listTodos.input.parse({
+                    taskId: task?.id,
+                    standalone: input.options.standalone ? true : undefined,
+                    done: input.options.all ? undefined : false,
+                  }),
+                ),
+              );
+              if (input.options.json) return JSON.stringify(result);
+              if (result.todos.length === 0) return "No todos";
+              return result.todos
+                .map(
+                  (todo) =>
+                    `${todo.done ? "[x]" : "[ ]"} ${todo.id}  ${todo.title}${
+                      todo.dueDate === null ? "" : `  due ${todo.dueDate}`
+                    }`,
+                )
+                .join("\n");
+            });
+          },
+        }),
+        "todo import": cliCommand({
+          summary:
+            "Move `- [ ]` / `- [x]` lines out of task descriptions into todos",
+          options: {
+            task: {
+              type: "string",
+              placeholder: "key-or-id",
+              description: "Convert only this task",
+            },
+            all: {
+              type: "boolean",
+              description:
+                "Convert every task whose description has checkboxes",
+            },
+            json: JSON_OPTION,
+          },
+          constraints: [{ kind: "exactly-one", options: ["task", "all"] }],
+          run(input) {
+            return guard(async () => {
+              const task =
+                input.options.task === undefined
+                  ? undefined
+                  : await resolveTask(domain, input.options.task);
+              const result = tasksRpcContract.importChecklistTodos.output.parse(
+                await domain.importChecklistTodos(
+                  tasksRpcContract.importChecklistTodos.input.parse({
+                    taskId: task?.id,
+                  }),
+                ),
+              );
+              if (input.options.json) return JSON.stringify(result);
+              if (result.converted.length === 0) return "Nothing to convert";
+              return result.converted
+                .map((entry) => `${entry.key}  ${entry.count} todos`)
+                .join("\n");
+            });
+          },
+        }),
+        "todo update": cliCommand({
+          summary: "Rename a todo or change its due date",
+          positionals: [TODO_POSITIONAL],
+          options: {
+            title: {
+              type: "string",
+              description: "New title",
+            },
+            due: {
+              type: "string",
+              placeholder: "YYYY-MM-DD",
+              aliases: ["due-date"],
+              description: "New due date as a calendar date, YYYY-MM-DD",
+            },
+            "no-due": { type: "boolean", description: "Clear the due date" },
+            json: JSON_OPTION,
+          },
+          constraints: [
+            { kind: "at-most-one", options: ["due", "no-due"] },
+            { kind: "at-least-one", options: ["title", "due", "no-due"] },
+          ],
+          run(input) {
+            return guard(async () => {
+              const result = tasksRpcContract.updateTodo.output.parse(
+                await domain.updateTodo(
+                  tasksRpcContract.updateTodo.input.parse({
+                    todoId: input.positionals["todo-id"],
+                    title: input.options.title,
+                    dueDate: input.options["no-due"] ? null : input.options.due,
+                  }),
+                ),
+              );
+              return input.options.json
+                ? JSON.stringify(result)
+                : `Updated todo ${result.todo.id}`;
+            });
+          },
+        }),
+        "todo done": todoToggleCommand(true),
+        "todo undone": todoToggleCommand(false),
+        "todo delete": cliCommand({
+          summary: "Delete a todo",
+          positionals: [TODO_POSITIONAL],
+          options: { json: JSON_OPTION },
+          run(input) {
+            return guard(async () => {
+              const result = tasksRpcContract.deleteTodo.output.parse(
+                await domain.deleteTodo(
+                  tasksRpcContract.deleteTodo.input.parse({
+                    todoId: input.positionals["todo-id"],
+                  }),
+                ),
+              );
+              return input.options.json
+                ? JSON.stringify(result)
+                : result.deleted
+                  ? "Deleted todo"
+                  : "Todo not found";
             });
           },
         }),

@@ -100,6 +100,183 @@ describe("bb tasks CLI", () => {
     await harness.dispose();
   });
 
+  it("adds, checks, lists, and deletes ticket and standalone todos", async () => {
+    const { bb, harness } = createFakePluginHost({ pluginId: "tasks" });
+    await plugin(bb);
+    stdout(
+      await harness.runCli([
+        "project",
+        "create",
+        "--name",
+        "Todo Project",
+        "--prefix",
+        "TDO",
+        "--json",
+      ]),
+    );
+    stdout(
+      await harness.runCli([
+        "create",
+        "--project",
+        "TDO",
+        "--title",
+        "Ticket",
+        "--json",
+      ]),
+    );
+
+    const added = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "add",
+          "Write tests",
+          "--task",
+          "tdo-1",
+          "--json",
+        ]),
+      ),
+    );
+    const loose = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "add",
+          "Buy milk",
+          "--due",
+          "2026-12-01",
+          "--json",
+        ]),
+      ),
+    );
+    expect(added.todo).toMatchObject({ title: "Write tests", done: false });
+    expect(loose.todo).toMatchObject({ taskId: null, dueDate: "2026-12-01" });
+
+    const standalone = JSON.parse(
+      stdout(await harness.runCli(["todo", "list", "--standalone", "--json"])),
+    );
+    expect(
+      standalone.todos.map((todo: { title: string }) => todo.title),
+    ).toEqual(["Buy milk"]);
+
+    stdout(
+      await harness.runCli([
+        "todo",
+        "update",
+        added.todo.id,
+        "--title",
+        "Write more tests",
+        "--due",
+        "2026-12-02",
+      ]),
+    );
+    const shownWithTodos = JSON.parse(
+      stdout(await harness.runCli(["show", "TDO-1", "--json"])),
+    );
+    expect(shownWithTodos.todos).toMatchObject([
+      { title: "Write more tests", dueDate: "2026-12-02", taskKey: "TDO-1" },
+    ]);
+    expect(stdout(await harness.runCli(["show", "TDO-1"]))).toContain(
+      "Write more tests",
+    );
+    stdout(await harness.runCli(["todo", "update", added.todo.id, "--no-due"]));
+    expect(
+      (await harness.runCli(["todo", "update", added.todo.id])).exitCode,
+    ).not.toBe(0);
+
+    stdout(await harness.runCli(["todo", "done", added.todo.id]));
+    const open = JSON.parse(
+      stdout(await harness.runCli(["todo", "list", "--json"])),
+    );
+    expect(open.todos.map((todo: { title: string }) => todo.title)).toEqual([
+      "Buy milk",
+    ]);
+    const all = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "list",
+          "--all",
+          "--task",
+          "TDO-1",
+          "--json",
+        ]),
+      ),
+    );
+    expect(all.todos).toMatchObject([
+      { title: "Write more tests", done: true, dueDate: null },
+    ]);
+
+    stdout(await harness.runCli(["todo", "delete", loose.todo.id]));
+    expect(stdout(await harness.runCli(["todo", "list"]))).toBe("No todos");
+
+    await harness.dispose();
+  });
+
+  it("converts checkbox lines in descriptions into todos", async () => {
+    const { bb, harness } = createFakePluginHost({ pluginId: "tasks" });
+    await plugin(bb);
+    stdout(
+      await harness.runCli([
+        "project",
+        "create",
+        "--name",
+        "Import",
+        "--prefix",
+        "IMP",
+        "--json",
+      ]),
+    );
+    stdout(
+      await harness.runCli([
+        "create",
+        "--project",
+        "IMP",
+        "--title",
+        "Has list",
+        "--description",
+        "Plan\n\n- [ ] first\n- [x] second",
+        "--json",
+      ]),
+    );
+
+    expect(stdout(await harness.runCli(["todo", "import", "--all"]))).toBe(
+      "IMP-1  2 todos",
+    );
+    const todos = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "list",
+          "--all",
+          "--task",
+          "IMP-1",
+          "--json",
+        ]),
+      ),
+    );
+    expect(
+      todos.todos.map((todo: { title: string; done: boolean }) => [
+        todo.title,
+        todo.done,
+      ]),
+    ).toEqual(
+      [
+        ["first", false],
+        ["second", true],
+      ].sort(),
+    );
+    const shown = JSON.parse(
+      stdout(await harness.runCli(["show", "IMP-1", "--json"])),
+    );
+    expect(shown.task.description).toBe("Plan");
+    expect(stdout(await harness.runCli(["todo", "import", "--all"]))).toBe(
+      "Nothing to convert",
+    );
+
+    await harness.dispose();
+  });
+
   it("runs create, list, show, update, and comment through case-insensitive key addressing", async () => {
     const { bb, harness } = createFakePluginHost({
       pluginId: "tasks",

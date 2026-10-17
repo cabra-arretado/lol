@@ -147,6 +147,12 @@ function TaskCard({
             {meta.subDone}/{meta.subTotal}
           </span>
         ) : null}
+        {meta.todoTotal > 0 ? (
+          <span className="flex items-center gap-0.5 text-2xs text-muted-foreground">
+            <Icon name="Check" className="size-3" />
+            {meta.todoDone}/{meta.todoTotal}
+          </span>
+        ) : null}
         {meta.attachmentCount > 0 ? (
           <Icon
             name="Paperclip"
@@ -188,7 +194,7 @@ export function BoardView({ projectId }: BoardViewProps) {
   const navigation = useTasksNavigation();
   const board = useTasksQuery<BoardData>(
     (queryRpc) => fetchBoard(queryRpc, projectId),
-    ["tasks:changed", "projects:changed", "threads:changed"],
+    ["tasks:changed", "projects:changed", "threads:changed", "todos:changed"],
     [projectId],
     {
       applySignals: (queryRpc, current, signals) =>
