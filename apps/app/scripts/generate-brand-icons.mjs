@@ -5,6 +5,17 @@ import sharp from "sharp";
 export async function generateBrandIcons(publicDir, writeOrCheck) {
   const root = resolve(publicDir, "../../..");
   const mark = await readFile(resolve(root, "assets/bb-logo.svg"), "utf8");
+  if (
+    mark.split("<svg ").length !== 2 ||
+    mark.split('fill="#151515"').length !== 2 ||
+    [...mark.matchAll(/<path\b/g)].length !== 1 ||
+    [...mark.matchAll(/\bfill\s*=/g)].length !== 1 ||
+    /<style\b|\bstyle\s*=/.test(mark)
+  ) {
+    throw new Error(
+      'Unsupported logo SVG: expected one <svg root and one path with fill="#151515", without inline styles. Update the icon generator when changing this structure.',
+    );
+  }
   const glyph = (color, x, y, size) =>
     mark
       .replace(

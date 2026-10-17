@@ -169,7 +169,9 @@ vi.mock("@/hooks/queries/thread-queries", () => ({
 }));
 
 describe("AppLayout root compose project preference", () => {
+  let originalDocumentTitle: string;
   beforeEach(() => {
+    originalDocumentTitle = document.title;
     window.localStorage.clear();
     commandHandlers.clear();
     mockUseThread.mockReturnValue({
@@ -190,6 +192,7 @@ describe("AppLayout root compose project preference", () => {
 
   afterEach(() => {
     cleanup();
+    document.title = originalDocumentTitle;
     window.localStorage.clear();
     commandHandlers.clear();
     vi.clearAllMocks();
@@ -239,6 +242,8 @@ describe("AppLayout root compose project preference", () => {
         </AppLayout>
       </MemoryRouter>,
     );
+
+    expect(document.title).toBe("lol");
 
     act(() => {
       expect(commandHandlers.get("thread.new")?.()).toBe(true);
