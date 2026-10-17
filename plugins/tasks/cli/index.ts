@@ -1949,6 +1949,7 @@ export function registerTasksCli(
           ["done", "Mark a todo done"],
           ["undone", "Mark a todo not done"],
           ["delete", "Delete a todo"],
+          ["import", "Convert `- [ ]` lines in descriptions into todos"],
         ]),
         "todo add": cliCommand({
           summary: "Add a todo to a task, or a standalone todo without --task",
@@ -2035,6 +2036,44 @@ export function registerTasksCli(
                       todo.dueDate === null ? "" : `  due ${todo.dueDate}`
                     }`,
                 )
+                .join("\n");
+            });
+          },
+        }),
+        "todo import": cliCommand({
+          summary:
+            "Move `- [ ]` / `- [x]` lines out of task descriptions into todos",
+          options: {
+            task: {
+              type: "string",
+              placeholder: "key-or-id",
+              description: "Convert only this task",
+            },
+            all: {
+              type: "boolean",
+              description:
+                "Convert every task whose description has checkboxes",
+            },
+            json: JSON_OPTION,
+          },
+          constraints: [{ kind: "exactly-one", options: ["task", "all"] }],
+          run(input) {
+            return guard(async () => {
+              const task =
+                input.options.task === undefined
+                  ? undefined
+                  : await resolveTask(domain, input.options.task);
+              const result = tasksRpcContract.importChecklistTodos.output.parse(
+                await domain.importChecklistTodos(
+                  tasksRpcContract.importChecklistTodos.input.parse({
+                    taskId: task?.id,
+                  }),
+                ),
+              );
+              if (input.options.json) return JSON.stringify(result);
+              if (result.converted.length === 0) return "Nothing to convert";
+              return result.converted
+                .map((entry) => `${entry.key}  ${entry.count} todos`)
                 .join("\n");
             });
           },

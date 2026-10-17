@@ -186,6 +186,70 @@ describe("bb tasks CLI", () => {
     await harness.dispose();
   });
 
+  it("converts checkbox lines in descriptions into todos", async () => {
+    const { bb, harness } = createFakePluginHost({ pluginId: "tasks" });
+    await plugin(bb);
+    stdout(
+      await harness.runCli([
+        "project",
+        "create",
+        "--name",
+        "Import",
+        "--prefix",
+        "IMP",
+        "--json",
+      ]),
+    );
+    stdout(
+      await harness.runCli([
+        "create",
+        "--project",
+        "IMP",
+        "--title",
+        "Has list",
+        "--description",
+        "Plan\n\n- [ ] first\n- [x] second",
+        "--json",
+      ]),
+    );
+
+    expect(stdout(await harness.runCli(["todo", "import", "--all"]))).toBe(
+      "IMP-1  2 todos",
+    );
+    const todos = JSON.parse(
+      stdout(
+        await harness.runCli([
+          "todo",
+          "list",
+          "--all",
+          "--task",
+          "IMP-1",
+          "--json",
+        ]),
+      ),
+    );
+    expect(
+      todos.todos.map((todo: { title: string; done: boolean }) => [
+        todo.title,
+        todo.done,
+      ]),
+    ).toEqual(
+      [
+        ["first", false],
+        ["second", true],
+      ].sort(),
+    );
+    const shown = JSON.parse(
+      stdout(await harness.runCli(["show", "IMP-1", "--json"])),
+    );
+    expect(shown.task.description).toBe("Plan");
+    expect(stdout(await harness.runCli(["todo", "import", "--all"]))).toBe(
+      "Nothing to convert",
+    );
+
+    await harness.dispose();
+  });
+
   it("runs create, list, show, update, and comment through case-insensitive key addressing", async () => {
     const { bb, harness } = createFakePluginHost({
       pluginId: "tasks",

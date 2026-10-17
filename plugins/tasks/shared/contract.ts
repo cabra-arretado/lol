@@ -613,6 +613,22 @@ export const tasksRpcContract = defineRpcContract({
       .strict(),
     output: z.object({ todos: z.array(todoSchema) }).strict(),
   },
+  importChecklistTodos: {
+    input: z.object({ taskId: idSchema.optional() }).strict(),
+    output: z
+      .object({
+        converted: z.array(
+          z
+            .object({
+              taskId: idSchema,
+              key: z.string(),
+              count: z.number().int().positive(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+  },
   todoCounts: {
     input: z.object({ taskIds: z.array(idSchema).max(500) }).strict(),
     output: z

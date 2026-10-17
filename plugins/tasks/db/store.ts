@@ -1612,6 +1612,19 @@ export function createTasksStore(db: PluginDatabase) {
     return counts;
   }
 
+  function listTasksWithChecklistText(): Task[] {
+    return db
+      .prepare<[], TaskRow>(
+        `
+        ${taskSelect}
+        WHERE t.description LIKE '%[ ]%' OR t.description LIKE '%[x]%'
+        ORDER BY t.created_at, t.id
+      `,
+      )
+      .all()
+      .map(taskFromRow);
+  }
+
   function getComment(id: string): Comment | undefined {
     const row = getCommentRow.get(id);
     return row ? commentFromRow(row) : undefined;
@@ -2085,6 +2098,7 @@ export function createTasksStore(db: PluginDatabase) {
     deleteTodo,
     listTodos,
     todoCounts,
+    listTasksWithChecklistText,
     createComment,
     getComment,
     listComments,
