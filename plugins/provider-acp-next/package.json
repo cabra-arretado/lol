@@ -19,6 +19,7 @@
         "omp": "./icons/omp.svg",
         "grok": "./icons/grok.svg",
         "hermes-agent": "./icons/hermes-agent.svg",
+        "kiro": "./icons/kiro.svg",
         "registry-agoragentic-acp": "./icons/registry-agoragentic-acp.svg",
         "registry-amp-acp": "./icons/registry-amp-acp.svg",
         "registry-antigravity-acp": "./icons/registry-antigravity-acp.svg",
@@ -90,6 +91,11 @@
         "kind": "agent",
         "id": "acp-hermes-agent",
         "displayName": "Hermes"
+      },
+      {
+        "kind": "agent",
+        "id": "acp-kiro",
+        "displayName": "Kiro"
       }
     ]
   },

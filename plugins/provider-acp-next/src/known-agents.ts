@@ -2,6 +2,7 @@ import type { AcpAgentDefinition } from "./agents.js";
 import { resolveCursorNativeRoots } from "./native-roots/cursor.js";
 import { resolveGrokNativeRoots } from "./native-roots/grok.js";
 import { resolveHermesNativeRoots } from "./native-roots/hermes.js";
+import { resolveKiroNativeRoots } from "./native-roots/kiro.js";
 import { resolveOmpNativeRoots } from "./native-roots/omp.js";
 import { resolveOpenCodeNativeRoots } from "./native-roots/opencode.js";
 
@@ -197,6 +198,27 @@ export const KNOWN_ACP_AGENTS: readonly AcpAgentDefinition[] = [
       },
     },
     nativeRootsResolver: resolveHermesNativeRoots,
+  },
+  {
+    id: "acp-kiro",
+    displayName: "Kiro",
+    icon: declaredIcon("kiro"),
+    signInCommand: "kiro-cli login",
+    installUrl: "https://kiro.dev/downloads/",
+    visibility: "installed",
+    fork: "none",
+    reasoningLevels: ["low", "medium", "high", "max"],
+    launch: {
+      displayName: "Kiro",
+      command: "kiro-cli",
+      args: ["acp", "--agent-engine=v3", "--auth-method=cli"],
+      env: {},
+      nativeReasoning: {
+        configId: "effortLevel",
+        supportedLevels: ["low", "medium", "high", "max"],
+      },
+    },
+    nativeRootsResolver: resolveKiroNativeRoots,
   },
 ];
 
