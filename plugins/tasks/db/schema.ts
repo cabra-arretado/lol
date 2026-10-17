@@ -255,6 +255,10 @@ const MIGRATIONS = [
     );
     CREATE INDEX idx_todos_task ON todos(task_id, position);
     CREATE INDEX idx_todos_open ON todos(done, due_date, position);
+    CREATE TABLE data_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
   `,
 ] as const;
 

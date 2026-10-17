@@ -12,7 +12,6 @@ import {
   removeAttachmentBlobs,
 } from "../attachments";
 import { deliverCommentToLatestAgent } from "../steer";
-import { extractChecklist } from "../shared/checklist.js";
 import { displayName } from "../shared/display-name";
 import { errorMessage } from "../shared/errors";
 import { isSideChatShapedThread } from "../shared/side-chat";
@@ -906,30 +905,9 @@ export function registerHandlers(
       return { todos: store.tasks.listTodos(input) };
     },
     importChecklistTodos(input) {
-      const converted = store.transaction(() => {
-        const candidates =
-          input.taskId === undefined
-            ? store.tasks.listTasksWithChecklistText()
-            : [store.tasks.getTask(input.taskId)].flatMap((task) =>
-                task ? [task] : [],
-              );
-        const results: { taskId: string; key: string; count: number }[] = [];
-        for (const task of candidates) {
-          const { items, description } = extractChecklist(task.description);
-          if (items.length === 0) continue;
-          for (const item of items) {
-            const todo = store.tasks.createTodo({
-              taskId: task.id,
-              title: item.title,
-              dueDate: null,
-            });
-            if (item.done) store.tasks.updateTodo(todo.id, { done: true });
-          }
-          store.tasks.updateTask(task.id, { description });
-          results.push({ taskId: task.id, key: task.key, count: items.length });
-        }
-        return results;
-      });
+      const converted = store.transaction(() =>
+        store.tasks.importChecklistTodos(input.taskId),
+      );
       for (const { taskId } of converted) {
         const task = store.tasks.getTask(taskId);
         if (task) publishTasksChanged(bb, task.id, task.projectId);

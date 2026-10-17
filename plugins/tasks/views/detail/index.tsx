@@ -220,8 +220,11 @@ function TodosSection({
       <TodoList
         todos={items}
         placeholder="Add a todo…"
-        onAdd={(title) =>
-          run(() => rpc.call("createTodo", { taskId: task.id, title }))
+        onAdd={(title, dueDate) =>
+          run(() => rpc.call("createTodo", { taskId: task.id, title, dueDate }))
+        }
+        onUpdate={(todo, patch) =>
+          void run(() => rpc.call("updateTodo", { todoId: todo.id, ...patch }))
         }
         onToggle={(todo) =>
           void run(() =>
@@ -487,7 +490,7 @@ function TaskDetail({ task }: { task: Task }) {
             onChange={onDescriptionChange}
             variant="doc"
             className="min-h-24"
-            placeholder="Add a description… rich text: headings, lists, code, checkboxes, @mentions"
+            placeholder="Add a description… rich text: headings, lists, code, @mentions"
             onUploadImage={uploadForTask}
             mentionItems={mentionItems}
             onOpenThread={(threadId) => navigate.toThread(threadId)}

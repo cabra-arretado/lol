@@ -1566,12 +1566,18 @@ export function registerTasksCli(
                     }),
                   ),
                 );
+              const todos = tasksRpcContract.listTodos.output.parse(
+                await domain.listTodos(
+                  tasksRpcContract.listTodos.input.parse({ taskId: task.id }),
+                ),
+              ).todos;
               if (input.options.json) {
                 return JSON.stringify({
                   task,
                   project,
                   labels,
                   subtasks,
+                  todos,
                   attachments,
                   taskThreads,
                   pullRequests,
@@ -1603,6 +1609,16 @@ export function registerTasksCli(
                     subtask.status,
                     subtask.priority,
                     subtask.title,
+                  ]),
+                  "(none)",
+                )}`,
+                `Todos\n${table(
+                  ["DONE", "ID", "DUE", "TITLE"],
+                  todos.map((todo) => [
+                    todo.done ? "x" : " ",
+                    todo.id,
+                    todo.dueDate ?? "-",
+                    todo.title,
                   ]),
                   "(none)",
                 )}`,
@@ -1948,6 +1964,7 @@ export function registerTasksCli(
           ["list", "List todos across tickets and standalone"],
           ["done", "Mark a todo done"],
           ["undone", "Mark a todo not done"],
+          ["update", "Rename a todo or change its due date"],
           ["delete", "Delete a todo"],
           ["import", "Convert `- [ ]` lines in descriptions into todos"],
         ]),
@@ -2075,6 +2092,44 @@ export function registerTasksCli(
               return result.converted
                 .map((entry) => `${entry.key}  ${entry.count} todos`)
                 .join("\n");
+            });
+          },
+        }),
+        "todo update": cliCommand({
+          summary: "Rename a todo or change its due date",
+          positionals: [TODO_POSITIONAL],
+          options: {
+            title: {
+              type: "string",
+              description: "New title",
+            },
+            due: {
+              type: "string",
+              placeholder: "YYYY-MM-DD",
+              aliases: ["due-date"],
+              description: "New due date as a calendar date, YYYY-MM-DD",
+            },
+            "no-due": { type: "boolean", description: "Clear the due date" },
+            json: JSON_OPTION,
+          },
+          constraints: [
+            { kind: "at-most-one", options: ["due", "no-due"] },
+            { kind: "at-least-one", options: ["title", "due", "no-due"] },
+          ],
+          run(input) {
+            return guard(async () => {
+              const result = tasksRpcContract.updateTodo.output.parse(
+                await domain.updateTodo(
+                  tasksRpcContract.updateTodo.input.parse({
+                    todoId: input.positionals["todo-id"],
+                    title: input.options.title,
+                    dueDate: input.options["no-due"] ? null : input.options.due,
+                  }),
+                ),
+              );
+              return input.options.json
+                ? JSON.stringify(result)
+                : `Updated todo ${result.todo.id}`;
             });
           },
         }),

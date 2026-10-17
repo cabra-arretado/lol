@@ -7,6 +7,7 @@ import type {
   Project,
   Task,
   TasksStore,
+  Todo,
   TaskThreadLiveStatus,
 } from "../db";
 import {
@@ -21,6 +22,7 @@ import {
   type ThreadsChangedEvent,
 } from "../shared/contract";
 import { errorMessage } from "../shared/errors";
+import { formatTodos } from "../shared/todo-format";
 import { truncateToWidth } from "../shared/text-measure";
 import { delegationRpcContract } from "./contract";
 
@@ -54,6 +56,7 @@ interface SeedPromptInput {
   task: Task;
   project: Project;
   subtasks: readonly Task[];
+  todos: readonly Todo[];
   attachments: readonly Pick<Attachment, "id" | "fileName">[];
   recentComments: readonly Comment[];
   presetInstructions: string;
@@ -106,11 +109,12 @@ export function buildSeedPrompt(input: SeedPromptInput): string {
       `- Name: ${input.project.name}\n- Linked bb project: ${input.project.linkedBbProjectId ?? "Not linked"}`,
     ),
     markdownSection("Sub-tasks", formatSubtasks(input.subtasks)),
+    markdownSection("Todos", formatTodos(input.todos)),
     markdownSection("Attachments", formatAttachments(input.attachments)),
     markdownSection("Recent comments", formatComments(input.recentComments)),
     markdownSection(
       "Report-back contract",
-      `You are working on task ${input.task.key}. Use the bb tasks CLI: comment substantive updates (bb tasks comment ${input.task.key} --body ...), attach result artifacts, set status when done (bb tasks update ${input.task.key} --status in_review) or explain blockage in a comment. Your thread is already attached to the task.`,
+      `You are working on task ${input.task.key}. Use the bb tasks CLI: comment substantive updates (bb tasks comment ${input.task.key} --body ...), check off todos (bb tasks todo done <todo-id>), attach result artifacts, set status when done (bb tasks update ${input.task.key} --status in_review) or explain blockage in a comment. Your thread is already attached to the task.`,
     ),
   ];
 
@@ -319,6 +323,7 @@ export function handlers(
         task,
         project,
         subtasks: store.tasks.listSubtasks(task.id),
+        todos: store.tasks.listTodos({ taskId: task.id }),
         attachments: collectAttachments(store.tasks, task.id, comments),
         recentComments,
         presetInstructions: preset.instructions,

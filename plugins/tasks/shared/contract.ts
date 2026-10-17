@@ -128,6 +128,7 @@ const todoSchema = z
   .object({
     id: idSchema,
     taskId: idSchema.nullable(),
+    taskKey: z.string().nullable(),
     title: z.string(),
     done: z.boolean(),
     dueDate: dueDateSchema.nullable(),
@@ -610,7 +611,11 @@ export const tasksRpcContract = defineRpcContract({
         projectId: idSchema.optional(),
         done: z.boolean().optional(),
       })
-      .strict(),
+      .strict()
+      .refine((input) => input.taskId === undefined || !input.standalone, {
+        path: ["standalone"],
+        message: "taskId and standalone cannot be combined",
+      }),
     output: z.object({ todos: z.array(todoSchema) }).strict(),
   },
   importChecklistTodos: {

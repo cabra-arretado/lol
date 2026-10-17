@@ -157,6 +157,11 @@ describe("@task mention provider", () => {
         authorName: "Sawyer",
         body: "Keep the context focused.",
       });
+      const todo = store.tasks.createTodo({
+        taskId: task.id,
+        title: "Cover mentions",
+        dueDate: "2026-07-21",
+      });
       store.tasks.upsertTaskThread({
         taskId: task.id,
         threadId: "thr_worker",
@@ -171,6 +176,10 @@ describe("@task mention provider", () => {
         "The full task description belongs in agent context.",
       );
       expect(context).toContain("MEN-2 · Verify mention output — Done");
+      expect(context).toContain(
+        `- [ ] ${todo.id} · Cover mentions (due 2026-07-21)`,
+      );
+      expect(context).toContain("bb tasks todo done <todo-id>");
       expect(context).toMatch(/- 01[0-9A-HJKMNP-TV-Z]{24} · acceptance\.md/);
       expect(context).toContain("Fetch with: bb tasks attachment get ");
       expect(context).toContain("Sawyer · User");

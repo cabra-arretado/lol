@@ -9,6 +9,7 @@ afterEach(cleanup);
 const TODO: Todo = {
   id: "01HZZZZZZZZZZZZZZZZZZZZZD1",
   taskId: "01HZZZZZZZZZZZZZZZZZZZZZT1",
+  taskKey: "TSK-1",
   title: "Write tests",
   done: false,
   dueDate: "2026-12-01",
@@ -22,12 +23,13 @@ describe("TodoList", () => {
     const onAdd = vi.fn().mockResolvedValue(true);
     const onToggle = vi.fn();
     const onDelete = vi.fn();
+    const onUpdate = vi.fn();
     const onOpenTask = vi.fn();
     const { getByLabelText, getByPlaceholderText, getByText } = render(
       <TodoList
         todos={[TODO]}
         placeholder="Add…"
-        taskKeys={new Map([[TODO.taskId ?? "", "TSK-1"]])}
+        onUpdate={onUpdate}
         onAdd={onAdd}
         onToggle={onToggle}
         onDelete={onDelete}
@@ -41,16 +43,30 @@ describe("TodoList", () => {
     expect(onDelete).toHaveBeenCalledWith(TODO);
     fireEvent.click(getByText("TSK-1"));
     expect(onOpenTask).toHaveBeenCalledWith("TSK-1");
-    expect(getByText("2026-12-01")).toBeTruthy();
+    const due = getByLabelText("Due date for Write tests") as HTMLInputElement;
+    expect(due.value).toBe("2026-12-01");
+    fireEvent.change(due, { target: { value: "2026-12-05" } });
+    expect(onUpdate).toHaveBeenCalledWith(TODO, { dueDate: "2026-12-05" });
+    fireEvent.change(due, { target: { value: "" } });
+    expect(onUpdate).toHaveBeenCalledWith(TODO, { dueDate: null });
+
+    fireEvent.doubleClick(getByText("Write tests"));
+    const rename = getByLabelText("Rename Write tests") as HTMLInputElement;
+    fireEvent.change(rename, { target: { value: "  Write more tests " } });
+    fireEvent.keyDown(rename, { key: "Enter" });
+    expect(onUpdate).toHaveBeenCalledWith(TODO, { title: "Write more tests" });
 
     const input = getByPlaceholderText("Add…") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "   " } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onAdd).not.toHaveBeenCalled();
 
+    fireEvent.change(getByLabelText("Due date for new todo"), {
+      target: { value: "2026-12-24" },
+    });
     fireEvent.change(input, { target: { value: "  Ship it  " } });
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(onAdd).toHaveBeenCalledWith("Ship it");
+    expect(onAdd).toHaveBeenCalledWith("Ship it", "2026-12-24");
     await waitFor(() => expect(input.value).toBe(""));
   });
 
@@ -62,6 +78,7 @@ describe("TodoList", () => {
         placeholder="Add…"
         onAdd={onAdd}
         onToggle={vi.fn()}
+        onUpdate={vi.fn()}
         onDelete={vi.fn()}
       />,
     );

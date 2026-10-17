@@ -909,9 +909,11 @@ describe("tasks storage", () => {
       store.updateTodo(first.id, { done: true });
       expect(store.getTodo(first.id)?.done).toBe(true);
       expect(store.listTodos({ taskId: task.id }).map((t) => t.title)).toEqual([
-        "Second",
         "First",
+        "Second",
       ]);
+      expect(store.listTodos({ taskId: task.id })[0]?.taskKey).toBe("TDO-1");
+      expect(loose.taskKey).toBeNull();
       expect(
         store.listTodos({ standalone: true }).map((todo) => todo.id),
       ).toEqual([loose.id]);
@@ -944,6 +946,35 @@ describe("tasks storage", () => {
       store.deleteTask(task.id);
       expect(store.getTodo(first.id)).toBeUndefined();
       expect(store.getTodo(loose.id)).toBeDefined();
+    } finally {
+      await harness.dispose();
+    }
+  });
+
+  it("converts legacy description checklists exactly once at startup", async () => {
+    const { db, harness, store } = setup();
+    try {
+      const project = createProject(store, "LEG");
+      const task = store.createTask({
+        projectId: project.id,
+        title: "Legacy",
+        description: "Notes\n\n- [ ] first\n- [x] second\n",
+      });
+      db.prepare("DELETE FROM data_migrations").run();
+
+      const reopened = createTasksStore(db);
+      expect(
+        reopened.listTodos({ taskId: task.id }).map((t) => [t.title, t.done]),
+      ).toEqual([
+        ["first", false],
+        ["second", true],
+      ]);
+      expect(reopened.getTask(task.id)?.description).toBe("Notes\n");
+
+      reopened.updateTask(task.id, { description: "- [ ] again" });
+      createTasksStore(db);
+      expect(reopened.getTask(task.id)?.description).toBe("- [ ] again");
+      expect(reopened.listTodos({ taskId: task.id })).toHaveLength(2);
     } finally {
       await harness.dispose();
     }

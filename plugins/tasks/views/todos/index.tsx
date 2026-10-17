@@ -1,14 +1,8 @@
 import { useState } from "react";
 import { TodoList } from "../../components/todo-list.js";
 import { errorMessage } from "../../shared/errors.js";
-import type { Todo } from "../../shared/contract.js";
 import { useTasksNavigation } from "../../shell/routes.js";
 import { useTasksQuery, useTasksRpc } from "../../shell/data.js";
-
-interface TodosData {
-  todos: Todo[];
-  taskKeys: Map<string, string>;
-}
 
 export function TodosView() {
   const rpc = useTasksRpc();
@@ -16,21 +10,13 @@ export function TodosView() {
   const [showDone, setShowDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const query = useTasksQuery<TodosData>(
-    async (queryRpc) => {
-      const { todos } = await queryRpc.call("listTodos", {
-        done: showDone ? undefined : false,
-      });
-      const taskIds = [...new Set(todos.flatMap((todo) => todo.taskId ?? []))];
-      const tasks = await Promise.all(
-        taskIds.map((taskId) => queryRpc.call("getTask", { taskId })),
-      );
-      const taskKeys = new Map<string, string>();
-      for (const { task } of tasks) {
-        if (task !== null) taskKeys.set(task.id, task.key);
-      }
-      return { todos, taskKeys };
-    },
+  const query = useTasksQuery(
+    async (queryRpc) =>
+      (
+        await queryRpc.call("listTodos", {
+          done: showDone ? undefined : false,
+        })
+      ).todos,
     ["todos:changed", "tasks:changed"],
     [showDone],
   );
@@ -66,11 +52,13 @@ export function TodosView() {
         </p>
       )}
       <TodoList
-        todos={query.data?.todos ?? []}
-        taskKeys={query.data?.taskKeys}
+        todos={query.data ?? []}
         placeholder="Add a standalone todo…"
-        onAdd={(title) =>
-          run(() => rpc.call("createTodo", { taskId: null, title }))
+        onAdd={(title, dueDate) =>
+          run(() => rpc.call("createTodo", { taskId: null, title, dueDate }))
+        }
+        onUpdate={(todo, patch) =>
+          void run(() => rpc.call("updateTodo", { todoId: todo.id, ...patch }))
         }
         onToggle={(todo) =>
           void run(() =>

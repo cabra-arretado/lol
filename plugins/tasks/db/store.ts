@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { z } from "zod";
+import { extractChecklist } from "../shared/checklist.js";
 import { initializeTasksSchema } from "./schema";
 import {
   TASKS_PAGE_DEFAULT_LIMIT,
@@ -110,6 +111,7 @@ interface TaskListRevisionRow {
 interface TodoRow {
   id: string;
   task_id: string | null;
+  task_key: string | null;
   title: string;
   done: number;
   due_date: string | null;
@@ -403,10 +405,18 @@ function taskLabelFromRow(row: TaskLabelRow): TaskLabel {
   return { taskId: row.task_id, labelId: row.label_id };
 }
 
+const todoSelect = `
+  SELECT t.*, CASE WHEN k.id IS NULL THEN NULL ELSE p.prefix || '-' || k.number END AS task_key
+  FROM todos t
+  LEFT JOIN tasks k ON k.id = t.task_id
+  LEFT JOIN projects p ON p.id = k.project_id
+`;
+
 function todoFromRow(row: TodoRow): Todo {
   return {
     id: row.id,
     taskId: row.task_id,
+    taskKey: row.task_key,
     title: row.title,
     done: row.done === 1,
     dueDate: row.due_date,
@@ -1496,7 +1506,7 @@ export function createTasksStore(db: PluginDatabase) {
 
   function getTodo(id: string): Todo | undefined {
     const row = db
-      .prepare<[string], TodoRow>("SELECT * FROM todos WHERE id = ?")
+      .prepare<[string], TodoRow>(`${todoSelect} WHERE t.id = ?`)
       .get(id);
     return row ? todoFromRow(row) : undefined;
   }
@@ -1582,9 +1592,13 @@ export function createTasksStore(db: PluginDatabase) {
     return db
       .prepare<(string | number)[], TodoRow>(
         `
-        SELECT t.* FROM todos t
+        ${todoSelect}
         ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY t.done, t.due_date IS NULL, t.due_date, t.created_at, t.id
+        ORDER BY ${
+          filters.taskId === undefined
+            ? "t.done, t.due_date IS NULL, t.due_date, t.task_id, t.position, t.id"
+            : "t.position, t.id"
+        }
       `,
       )
       .all(...params)
@@ -1610,6 +1624,48 @@ export function createTasksStore(db: PluginDatabase) {
       counts.set(row.task_id, { total: row.total, done: row.done });
     }
     return counts;
+  }
+
+  function importChecklistTodos(
+    taskId?: string,
+  ): { taskId: string; key: string; count: number }[] {
+    const candidates =
+      taskId === undefined
+        ? listTasksWithChecklistText()
+        : [getTask(taskId)].flatMap((task) => (task ? [task] : []));
+    return db.transaction(() => {
+      const results: { taskId: string; key: string; count: number }[] = [];
+      for (const task of candidates) {
+        const { items, description } = extractChecklist(task.description);
+        if (items.length === 0) continue;
+        for (const item of items) {
+          const todo = createTodo({
+            taskId: task.id,
+            title: item.title,
+            dueDate: null,
+          });
+          if (item.done) updateTodo(todo.id, { done: true });
+        }
+        updateTask(task.id, { description });
+        results.push({ taskId: task.id, key: task.key, count: items.length });
+      }
+      return results;
+    })();
+  }
+
+  function convertLegacyChecklistsOnce(): void {
+    db.transaction(() => {
+      const recorded = db
+        .prepare<[string], { found: number }>(
+          "SELECT 1 AS found FROM data_migrations WHERE name = ?",
+        )
+        .get("checklists-to-todos");
+      if (recorded) return;
+      importChecklistTodos();
+      db.prepare<[string, string]>(
+        "INSERT INTO data_migrations (name, applied_at) VALUES (?, ?)",
+      ).run("checklists-to-todos", nowIso());
+    })();
   }
 
   function listTasksWithChecklistText(): Task[] {
@@ -2062,6 +2118,8 @@ export function createTasksStore(db: PluginDatabase) {
     );
   }
 
+  convertLegacyChecklistsOnce();
+
   return {
     createFolder,
     getFolder,
@@ -2098,7 +2156,7 @@ export function createTasksStore(db: PluginDatabase) {
     deleteTodo,
     listTodos,
     todoCounts,
-    listTasksWithChecklistText,
+    importChecklistTodos,
     createComment,
     getComment,
     listComments,

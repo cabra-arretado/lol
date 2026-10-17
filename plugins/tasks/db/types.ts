@@ -271,6 +271,7 @@ export interface UpdatePresetInput {
 export interface Todo {
   id: string;
   taskId: string | null;
+  taskKey: string | null;
   title: string;
   done: boolean;
   dueDate: string | null;

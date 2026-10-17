@@ -159,6 +159,31 @@ describe("bb tasks CLI", () => {
       standalone.todos.map((todo: { title: string }) => todo.title),
     ).toEqual(["Buy milk"]);
 
+    stdout(
+      await harness.runCli([
+        "todo",
+        "update",
+        added.todo.id,
+        "--title",
+        "Write more tests",
+        "--due",
+        "2026-12-02",
+      ]),
+    );
+    const shownWithTodos = JSON.parse(
+      stdout(await harness.runCli(["show", "TDO-1", "--json"])),
+    );
+    expect(shownWithTodos.todos).toMatchObject([
+      { title: "Write more tests", dueDate: "2026-12-02", taskKey: "TDO-1" },
+    ]);
+    expect(stdout(await harness.runCli(["show", "TDO-1"]))).toContain(
+      "Write more tests",
+    );
+    stdout(await harness.runCli(["todo", "update", added.todo.id, "--no-due"]));
+    expect(
+      (await harness.runCli(["todo", "update", added.todo.id])).exitCode,
+    ).not.toBe(0);
+
     stdout(await harness.runCli(["todo", "done", added.todo.id]));
     const open = JSON.parse(
       stdout(await harness.runCli(["todo", "list", "--json"])),
@@ -178,7 +203,9 @@ describe("bb tasks CLI", () => {
         ]),
       ),
     );
-    expect(all.todos).toMatchObject([{ title: "Write tests", done: true }]);
+    expect(all.todos).toMatchObject([
+      { title: "Write more tests", done: true, dueDate: null },
+    ]);
 
     stdout(await harness.runCli(["todo", "delete", loose.todo.id]));
     expect(stdout(await harness.runCli(["todo", "list"]))).toBe("No todos");
