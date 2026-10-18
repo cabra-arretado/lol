@@ -15,6 +15,7 @@ import {
   ThreadTitle,
   useBbNavigate,
   useComposers,
+  useRealtime,
   useRpc,
   useSdk,
   useSettings,
@@ -438,6 +439,22 @@ function useVaultLinks(
     void loadVault().catch(() => undefined);
   }, [loadVault]);
 
+  useRealtime(
+    "vault-changed",
+    useCallback(
+      (payload: unknown) => {
+        const changed =
+          isRecord(payload) && typeof payload.vaultId === "string"
+            ? payload.vaultId
+            : null;
+        const cached = vaultRef.current;
+        if (cached && changed !== null && changed !== cached.id) return;
+        void loadVault().catch(() => undefined);
+      },
+      [loadVault],
+    ),
+  );
+
   useEffect(() => {
     if (!root) return;
     const highlights =
@@ -503,13 +520,11 @@ function useVaultLinks(
         : wikilink!.target;
       if (target === null) return;
       const resolve = (current: NonNullable<typeof vault>) =>
-        resolveNotePath(target, current.files);
-      if (vault) {
-        const path = resolve(vault);
-        if (!path) {
-          if (wikilink) toast.error(`No note named “${wikilink.target}” in this vault`);
-          return;
-        }
+        resolveNotePath(target, current.files, {
+          matchTitles: wikilink !== null,
+        });
+      const path = vault ? resolve(vault) : null;
+      if (vault && path) {
         event.preventDefault();
         event.stopPropagation();
         openPath(vault, path);
@@ -517,11 +532,14 @@ function useVaultLinks(
       }
       if (!wikilink) return;
       event.preventDefault();
-      void loadVault().then((fresh) => {
-        const path = resolve(fresh);
-        if (path) openPath(fresh, path);
-        else toast.error(`No note named “${wikilink.target}” in this vault`);
-      });
+      event.stopPropagation();
+      void loadVault()
+        .then((fresh) => {
+          const found = resolve(fresh);
+          if (found) openPath(fresh, found);
+          else toast.error(`No note named “${wikilink.target}” in this vault`);
+        })
+        .catch(() => toast.error("Could not load this vault's notes"));
     };
     root.addEventListener("click", onClick, true);
     return () => {

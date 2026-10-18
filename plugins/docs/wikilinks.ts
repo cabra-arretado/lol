@@ -52,7 +52,9 @@ function comparableTitle(value: string): string {
 function shallowest(paths: readonly string[]): string | null {
   return (
     [...paths].sort(
-      (left, right) => left.split("/").length - right.split("/").length,
+      (left, right) =>
+        left.split("/").length - right.split("/").length ||
+        left.localeCompare(right),
     )[0] ?? null
   );
 }
@@ -60,6 +62,7 @@ function shallowest(paths: readonly string[]): string | null {
 export function resolveNotePath(
   target: string,
   files: readonly VaultFile[],
+  options: { matchTitles: boolean },
 ): string | null {
   const cleaned = safeDecode(target.trim())
     .replace(/\\/g, "/")
@@ -83,6 +86,7 @@ export function resolveNotePath(
     );
     if (byName) return byName;
   }
+  if (!options.matchTitles) return null;
   const title = comparableTitle(cleaned);
   return shallowest(
     files
