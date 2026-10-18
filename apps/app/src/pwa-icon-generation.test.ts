@@ -23,8 +23,8 @@ it("checks generated icons during generation and rejects stale assets", async ()
       recursive: true,
     });
     await cp(
-      resolve(appDir, "../../assets/bb-logo.svg"),
-      join(fixture, "assets/bb-logo.svg"),
+      resolve(appDir, "../../assets/lol-logo-source.png"),
+      join(fixture, "assets/lol-logo-source.png"),
     );
     const generator = join(fixtureAppDir, "scripts/generate-pwa-icons.mjs");
     await symlink(

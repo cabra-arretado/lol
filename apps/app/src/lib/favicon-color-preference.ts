@@ -107,7 +107,7 @@ interface UnreadBadgeDot {
 }
 
 export function getFaviconGlyphHref(): string {
-  return import.meta.env.DEV ? "/favicon-32x32-dev.png" : "/favicon-32x32.png";
+  return "/favicon-32x32-monochrome.png";
 }
 
 function getFaviconVariantSuffix(): string {
@@ -183,7 +183,11 @@ async function createFaviconHref({
     return baseHref;
   }
 
-  const image = await loadBaseImage(baseHref);
+  const image = await loadBaseImage(
+    colorPreference === "default"
+      ? baseHref
+      : baseHref.replace(/(?:-dark|-dev)?\.png$/, "-monochrome.png"),
+  );
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;

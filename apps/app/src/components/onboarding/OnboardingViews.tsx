@@ -23,7 +23,7 @@ import {
   type OnboardingStepId,
   type SignInGuide,
 } from "./onboarding-model";
-import bbLogoUrl from "../../../../../assets/bb-logo.svg";
+import bbLogoUrl from "../../../../../assets/bb-logo.png";
 
 const CONTENT_COLUMN_CLASS = "mx-auto w-full max-w-[600px] px-6";
 
@@ -85,7 +85,7 @@ export function OnboardingLayout({
           src={bbLogoUrl}
           alt="lol"
           draggable={false}
-          className="h-5 w-6 shrink-0 select-none object-contain dark:invert"
+          className="h-5 w-6 shrink-0 select-none object-contain"
         />
         <nav
           aria-label="Setup steps"

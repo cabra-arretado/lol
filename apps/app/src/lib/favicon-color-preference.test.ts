@@ -90,12 +90,14 @@ describe("favicon rendering", () => {
 
   class FakeImage {
     static created = 0;
+    static sources: string[] = [];
     naturalWidth = 32;
     naturalHeight = 32;
     onload: (() => void) | null = null;
     onerror: (() => void) | null = null;
-    set src(_value: string) {
+    set src(value: string) {
       FakeImage.created += 1;
+      FakeImage.sources.push(value);
       queueMicrotask(() => this.onload?.());
     }
   }
@@ -103,6 +105,29 @@ describe("favicon rendering", () => {
   async function loadFreshModule() {
     return import("./favicon-color-preference");
   }
+
+  it("tints the transparent wordmark instead of the opaque green tile", async () => {
+    stubDisplayMode(false);
+    FakeImage.sources = [];
+    vi.stubGlobal("Image", FakeImage);
+    setSystemFaviconColor("purple");
+    try {
+      const module = await loadFreshModule();
+      expect(module.getFaviconGlyphHref()).toBe(
+        "/favicon-32x32-monochrome.png",
+      );
+      renderHook(() => module.useFaviconColorSync());
+      module.initializeFavicon();
+      await waitFor(() =>
+        expect(FakeImage.sources.sort()).toEqual([
+          "/favicon-16x16-monochrome.png",
+          "/favicon-32x32-monochrome.png",
+        ]),
+      );
+    } finally {
+      window.localStorage.removeItem(FAVICON_COLOR_STORAGE_KEY);
+    }
+  });
 
   it("decodes each base glyph once across badge flips", async () => {
     stubDisplayMode(false);
