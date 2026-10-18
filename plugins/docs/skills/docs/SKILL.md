@@ -105,7 +105,9 @@ Markdown documents and full HTML artifacts.
 
 In the floating chat, wikilinks such as `[[Projects/Launch plan]]` or
 `[[Ideas|my ideas]]` open the note in the Vault view. Write vault-relative
-paths; `[[Note#Heading]]` opens the note, not the heading. Markdown links to
+paths, since a note's file name can differ from its title (a bare title still
+resolves when no file name matches); `[[Note#Heading]]` opens the note, not
+the heading. Markdown links to
 vault-relative `.md` paths open there too. Paths outside the vault are not
 opened.
 

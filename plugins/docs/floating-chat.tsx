@@ -44,6 +44,7 @@ import { isRecord } from "./markdown-document.js";
 import {
   findWikilinks,
   resolveNotePath,
+  type VaultFile,
   vaultRelativeHref,
 } from "./wikilinks.js";
 
@@ -397,6 +398,9 @@ function PastChats({
   );
 }
 
+const NO_WIKILINK_SELECTOR =
+  "[contenteditable='true'], textarea, input, button, [role='button'], [role='tab']";
+
 function useVaultLinks(
   root: HTMLElement | null,
   activeNote: ActiveNoteState,
@@ -407,19 +411,23 @@ function useVaultLinks(
   const vaultRef = useRef<{
     id: string;
     rootPath: string;
-    paths: string[];
+    files: VaultFile[];
   } | null>(null);
 
   const loadVault = useCallback(async () => {
     const data = await rpc.call("listNotes", {
       ...(vaultId ? { vaultId } : {}),
     });
+    const titles = new Map(data.notes.map((note) => [note.path, note.title]));
     const value = {
       id: data.vault.id,
       rootPath: data.vault.rootPath,
-      paths: data.entries
+      files: data.entries
         .filter((entry) => entry.kind === "file")
-        .map((entry) => entry.path),
+        .map((entry) => ({
+          path: entry.path,
+          title: titles.get(entry.path) ?? null,
+        })),
     };
     vaultRef.current = value;
     return value;
@@ -443,7 +451,7 @@ function useVaultLinks(
       const ranges: Range[] = [];
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        if (node.parentElement?.closest("[contenteditable='true'], textarea"))
+        if (node.parentElement?.closest(NO_WIKILINK_SELECTOR))
           continue;
         for (const link of findWikilinks(node.textContent ?? "")) {
           const range = document.createRange();
@@ -471,7 +479,7 @@ function useVaultLinks(
       const caret = document.caretRangeFromPoint?.(event.clientX, event.clientY);
       const node = caret?.startContainer;
       if (!caret || !node || node.nodeType !== Node.TEXT_NODE) return null;
-      if (node.parentElement?.closest("[contenteditable='true'], textarea"))
+      if (node.parentElement?.closest(NO_WIKILINK_SELECTOR))
         return null;
       return (
         findWikilinks(node.textContent ?? "").find(
@@ -495,7 +503,7 @@ function useVaultLinks(
         : wikilink!.target;
       if (target === null) return;
       const resolve = (current: NonNullable<typeof vault>) =>
-        resolveNotePath(target, current.paths);
+        resolveNotePath(target, current.files);
       if (vault) {
         const path = resolve(vault);
         if (!path) {

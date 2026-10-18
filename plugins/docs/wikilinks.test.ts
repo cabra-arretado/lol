@@ -18,7 +18,9 @@ describe("wikilinks", () => {
   });
 
   it("resolves exact paths before the shortest note with the same name", () => {
-    const paths = ["Ideas.md", "Archive/Ideas.md", "Projects/Launch plan.md", "Site/index.html"];
+    const paths = ["Ideas.md", "Archive/Ideas.md", "Projects/Launch plan.md", "Site/index.html"].map(
+      (path) => ({ path, title: null }),
+    );
     expect(resolveNotePath("Projects/launch plan", paths)).toBe("Projects/Launch plan.md");
     expect(resolveNotePath("ideas", paths)).toBe("Ideas.md");
     expect(resolveNotePath("Launch plan", paths)).toBe("Projects/Launch plan.md");
@@ -26,6 +28,22 @@ describe("wikilinks", () => {
     expect(resolveNotePath("Projects/Launch%20plan.md", paths)).toBe("Projects/Launch plan.md");
     expect(resolveNotePath("../Ideas", paths)).toBeNull();
     expect(resolveNotePath("Missing", paths)).toBeNull();
+  });
+
+  it("falls back to note titles when no file name matches", () => {
+    const files = [
+      { path: "what-is-up.md", title: "what is up" },
+      { path: "Archive/old-plan.md", title: "Launch plan" },
+      { path: "plan.md", title: "Launch  Plan" },
+      { path: "Ideas.md", title: "Something else" },
+      { path: "Site/index.html", title: null },
+    ];
+    expect(resolveNotePath("what is up", files)).toBe("what-is-up.md");
+    expect(resolveNotePath("WHAT IS UP", files)).toBe("what-is-up.md");
+    expect(resolveNotePath("launch plan", files)).toBe("plan.md");
+    expect(resolveNotePath("Ideas", files)).toBe("Ideas.md");
+    expect(resolveNotePath("Something else", files)).toBe("Ideas.md");
+    expect(resolveNotePath("Not a title", files)).toBeNull();
   });
 
   it("keeps only hrefs that point inside the vault", () => {

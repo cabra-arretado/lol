@@ -101,7 +101,8 @@ provider, and directive are all Docs.
   path and, when it can be matched in the file, its line range.
 - **Links:** `[[Note]]`, `[[Folder/Note|Label]]`, and Markdown links to
   vault-relative or absolute in-vault `.md` paths open the note in the Vault
-  view. A bare name opens the note with that name nearest the vault root.
+  view. A bare name opens the note with that file name nearest the vault
+  root, or else the note with that title.
 - **Opacity and size:** the window uses `chatOpacityActive` while the pointer
   is over it or it has focus and `chatOpacityIdle` otherwise. Drag the grip
   in its top-left corner, or focus it and use the arrow keys, to resize it.

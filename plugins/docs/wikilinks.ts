@@ -40,15 +40,33 @@ function basename(value: string): string {
   return value.split("/").at(-1) ?? value;
 }
 
+export interface VaultFile {
+  path: string;
+  title: string | null;
+}
+
+function comparableTitle(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function shallowest(paths: readonly string[]): string | null {
+  return (
+    [...paths].sort(
+      (left, right) => left.split("/").length - right.split("/").length,
+    )[0] ?? null
+  );
+}
+
 export function resolveNotePath(
   target: string,
-  paths: readonly string[],
+  files: readonly VaultFile[],
 ): string | null {
   const cleaned = safeDecode(target.trim())
     .replace(/\\/g, "/")
     .replace(/^(?:\.\/)+/, "")
     .replace(/^\/+/, "");
   if (!cleaned || cleaned.split("/").includes("..")) return null;
+  const paths = files.map((file) => file.path);
   const candidates = /\.(?:md|html?)$/i.test(cleaned)
     ? [cleaned]
     : [`${cleaned}.md`, cleaned];
@@ -60,15 +78,17 @@ export function resolveNotePath(
   for (const candidate of candidates) {
     if (candidate.includes("/")) continue;
     const lowered = candidate.toLowerCase();
-    const byName = paths.filter(
-      (entry) => basename(entry).toLowerCase() === lowered,
+    const byName = shallowest(
+      paths.filter((entry) => basename(entry).toLowerCase() === lowered),
     );
-    if (byName.length > 0)
-      return [...byName].sort(
-        (left, right) => left.split("/").length - right.split("/").length,
-      )[0]!;
+    if (byName) return byName;
   }
-  return null;
+  const title = comparableTitle(cleaned);
+  return shallowest(
+    files
+      .filter((file) => file.title !== null && comparableTitle(file.title) === title)
+      .map((file) => file.path),
+  );
 }
 
 export function vaultRelativeHref(
