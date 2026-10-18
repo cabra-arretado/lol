@@ -99,10 +99,13 @@ provider, and directive are all Docs.
   Docs mention of it (its current content is sent with the prompt) and
   **+ Selection** adds the selected text in a fenced block with the note's
   path and, when it can be matched in the file, its line range.
-- **Links:** `[[Note]]`, `[[Folder/Note|Label]]`, and Markdown links to
-  vault-relative or absolute in-vault `.md` paths open the note in the Vault
-  view. A bare name opens the note with that file name nearest the vault
-  root, or else the note with that title.
+- **Links:** Markdown links to vault-relative or absolute in-vault `.md`
+  paths, such as `[the plan](Projects/launch-plan.md)`, show only their label
+  and open the note in the Vault view. The `docs` skill tells agents to link
+  notes this way. `[[Note]]` and `[[Folder/Note|Label]]` also open the note but
+  keep their brackets, with the link underlined. A bare name opens the note
+  with that file name nearest the vault root, or else the note with that
+  title.
 - **Opacity and size:** the window uses `chatOpacityActive` while the pointer
   is over it or it has focus and `chatOpacityIdle` otherwise. Drag the grip
   in its top-left corner, or focus it and use the arrow keys, to resize it.

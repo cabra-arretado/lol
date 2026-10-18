@@ -103,13 +103,13 @@ known. Markdown cards are editable and autosave in the timeline; Open in tab ope
 the same document in Docs. Use the directive for both
 Markdown documents and full HTML artifacts.
 
-In the floating chat, wikilinks such as `[[Projects/Launch plan]]` or
-`[[Ideas|my ideas]]` open the note in the Vault view. Write vault-relative
-paths, since a note's file name can differ from its title (a bare title still
-resolves when no file name matches); `[[Note#Heading]]` opens the note, not
-the heading. Markdown links to
-vault-relative `.md` paths open there too. Paths outside the vault are not
-opened.
+To link a note in a chat reply, write a Markdown link with a vault-relative
+path, such as `[the launch plan](Projects/launch-plan.md)`. It shows only the
+label, and clicking it opens the note in the Vault view. Use the file's real
+path from the vault listing, since a note's file name can differ from its
+title. Do not write wikilinks such as `[[Launch plan]]`: they still open the
+note, but the brackets stay visible in the reply. Paths outside the vault are
+not opened.
 
 ## Propose changes for approval
 
