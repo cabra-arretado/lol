@@ -14,8 +14,16 @@ import {
   type PluginRpcHandlers,
 } from "@get-bb/plugin-sdk";
 import { z } from "zod";
+import {
+  CHAT_FOLDER_MODES,
+  CHAT_FOLDER_MODE_LABELS,
+  findProjectForFolder,
+  folderDisplayName,
+  parseChatFolderMode,
+} from "./chat-folder.js";
 
 const DEFAULT_DIR = "~/Notes";
+const opacitySchema = z.number().int().min(40).max(100);
 const PREVIEW_LENGTH = 100;
 const MAX_TREE_ENTRIES = 5_000;
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
@@ -496,6 +504,20 @@ export const docsRpcContract = defineRpcContract({
       .strict(),
     output: fileWriteSchema,
   },
+  resolveChatFolder: {
+    input: z.object({ vaultId: z.string().min(1).nullable() }).strict(),
+    output: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("default") }).strict(),
+      z
+        .object({
+          kind: z.literal("folder"),
+          projectId: z.string().min(1),
+          hostId: z.string().min(1),
+          path: z.string().min(1),
+        })
+        .strict(),
+    ]),
+  },
 });
 
 function errorMessage(error: unknown): string {
@@ -722,6 +744,46 @@ export default async function plugin(
   bb: BbPluginApi,
   watchVault: WatchVault = watchNativeVault,
 ) {
+  const chatSettings = bb.settings.define({
+    floatingChat: {
+      type: "boolean",
+      label: "Floating chat",
+      description:
+        "Show a chat bubble in the bottom-right corner of every screen that opens a floating agent chat.",
+      default: true,
+    },
+    chatDefaultFolder: {
+      type: "select",
+      label: "Default chat folder",
+      description:
+        "Where new floating chats run by default. You can still pick another project in the chat composer.",
+      options: [...CHAT_FOLDER_MODES],
+      experimental_optionLabels: CHAT_FOLDER_MODE_LABELS,
+      default: "vault",
+    },
+    chatFolder: {
+      type: "string",
+      label: "Chat folder",
+      description:
+        'Absolute folder on the server machine used when "Default chat folder" is the chat folder. A project is created for it the first time.',
+      default: "",
+    },
+    chatOpacityActive: {
+      type: "number",
+      label: "Chat opacity while in use",
+      description:
+        "Floating chat opacity, in percent (40–100), while the pointer is over it or it has focus.",
+      experimental_schema: opacitySchema,
+      default: 100,
+    },
+    chatOpacityIdle: {
+      type: "number",
+      label: "Chat opacity when not in use",
+      description: "Floating chat opacity, in percent (40–100), the rest of the time.",
+      experimental_schema: opacitySchema,
+      default: 85,
+    },
+  });
   const db = bb.storage.database();
   bb.storage.migrate(db, [
     `CREATE TABLE IF NOT EXISTS vaults (
@@ -1652,7 +1714,58 @@ export default async function plugin(
     };
   }
 
+  let chatFolderQueue: Promise<unknown> = Promise.resolve();
+  async function resolveChatFolder(vaultId: string | null) {
+    const values = await chatSettings.get();
+    const mode = parseChatFolderMode(values.chatDefaultFolder);
+    if (mode === "default" || (mode === "vault" && vaultId === null))
+      return { kind: "default" as const };
+    const primaryHostId = async () => {
+      const hostId = (await bb.sdk.system.config()).primaryHostId;
+      if (!hostId) throw new Error("This bb has no server machine yet");
+      return hostId;
+    };
+    let hostId: string;
+    let folder: string;
+    let name: string;
+    if (mode === "vault") {
+      const vault = getVault(vaultId ?? undefined);
+      hostId = vault.hostId ?? (await primaryHostId());
+      folder = vault.rootPath;
+      name = vault.name;
+    } else {
+      const raw = values.chatFolder.trim();
+      if (!raw)
+        throw new Error(
+          'Set "Chat folder" in the Docs settings, or choose another default chat folder',
+        );
+      folder = normalizeHostRoot(expandHome(raw));
+      if (!isAbsoluteHostPath(folder))
+        throw new Error('"Chat folder" must be an absolute path');
+      hostId = await primaryHostId();
+      name = folderDisplayName(folder);
+    }
+    const projects = await bb.sdk.projects.list();
+    const existing = findProjectForFolder(projects, hostId, folder);
+    const projectId =
+      existing ??
+      (
+        await bb.sdk.projects.create({
+          name,
+          source: { hostId, type: "local_path", path: folder },
+        })
+      ).id;
+    return { kind: "folder" as const, projectId, hostId, path: folder };
+  }
+
   const handlers: PluginRpcHandlers<typeof docsRpcContract> = {
+    async resolveChatFolder(input) {
+      const result = chatFolderQueue.then(() =>
+        resolveChatFolder(input.vaultId),
+      );
+      chatFolderQueue = result.catch(() => undefined);
+      return result;
+    },
     async readProposal(input) {
       return readProposal(getVault(input.vaultId).id, input.path);
     },

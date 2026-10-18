@@ -103,6 +103,12 @@ known. Markdown cards are editable and autosave in the timeline; Open in tab ope
 the same document in Docs. Use the directive for both
 Markdown documents and full HTML artifacts.
 
+In the floating chat, wikilinks such as `[[Projects/Launch plan]]` or
+`[[Ideas|my ideas]]` open the note in the Vault view. Write vault-relative
+paths; `[[Note#Heading]]` opens the note, not the heading. Markdown links to
+vault-relative `.md` paths open there too. Paths outside the vault are not
+opened.
+
 ## Propose changes for approval
 
 When the user asks to update a mentioned document or revise a pending proposal,
