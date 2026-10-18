@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/bb-logo-white.png">
-    <img alt="lol" src="assets/bb-logo.png" width="128">
-  </picture>
+  <img alt="lol" src="assets/bb-logo.png" width="128">
 </p>
 
 # lol

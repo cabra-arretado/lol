@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useIsCompactViewport } from "@bb/shared-ui/hooks/use-compact-viewport";
 import { Icon } from "@bb/shared-ui/icon";
 import { appToast } from "@/components/ui/app-toast";
-import bbLogoUrl from "../../../../../../assets/bb-logo.svg";
+import bbLogoUrl from "../../../../../../assets/bb-logo.png";
 import { OpenPluginGuideButton } from "./OpenPluginGuideButton";
 import { cn } from "@bb/shared-ui/lib/utils";
 import {
@@ -362,9 +362,10 @@ function BrowseShelf({
       hideDescriptionWhenNarrow
       leading={
         shelf.key === "collection:bb-official" ? (
-          <span
-            className="size-4 shrink-0 bg-current text-foreground"
-            style={{ mask: `url(${bbLogoUrl}) center / contain no-repeat` }}
+          <img
+            src={bbLogoUrl}
+            alt=""
+            className="size-4 shrink-0 object-contain"
             aria-hidden
           />
         ) : shelf.key === "collection:new-and-notable" ? (

@@ -26,9 +26,6 @@ const icons = [
   "icon-512.png",
   "icon-192-maskable.png",
   "icon-512-maskable.png",
-  // Opaque white tile: iOS renders transparency in touch icons as black,
-  // and the system's dark/tinted home-screen treatments need a full-bleed
-  // opaque source.
   "apple-touch-icon.png",
 ];
 
@@ -79,8 +76,8 @@ function tintTileIcon(data, colorRgb) {
   return output;
 }
 
-async function generatedPng(file, hex) {
-  const { data, info } = await sharp(join(publicDir, file))
+async function generatedPng(source, hex) {
+  const { data, info } = await sharp(source)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -116,8 +113,8 @@ function generatedManifest(baseManifest, color) {
 // Platforms use only the alpha channel of a monochrome icon as the tint
 // mask, so the glyph's darkness (against the tile's white backing) becomes
 // alpha — the same luma mask tintTileIcon uses to find glyph pixels.
-async function generatedMonochromePng(sourceFile) {
-  const { data, info } = await sharp(join(publicDir, sourceFile))
+async function generatedMonochromePng(source) {
+  const { data, info } = await sharp(source)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -167,7 +164,7 @@ async function writeOrCheck(fileName, content) {
   }
 }
 
-await generateBrandIcons(publicDir, writeOrCheck);
+const tintSources = await generateBrandIcons(publicDir, writeOrCheck);
 
 const baseManifest = JSON.parse(
   await readFile(join(publicDir, "manifest.webmanifest"), "utf8"),
@@ -176,7 +173,7 @@ const baseManifest = JSON.parse(
 for (const monochromeIcon of monochromeIcons) {
   await writeOrCheck(
     monochromeIcon.target,
-    await generatedMonochromePng(monochromeIcon.source),
+    await generatedMonochromePng(tintSources.get(monochromeIcon.source)),
   );
 }
 
@@ -184,7 +181,7 @@ for (const [color, hex] of Object.entries(faviconColorValues)) {
   for (const file of icons) {
     await writeOrCheck(
       outputFileName(file, color),
-      await generatedPng(file, hex),
+      await generatedPng(tintSources.get(file), hex),
     );
   }
 
