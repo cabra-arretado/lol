@@ -31,12 +31,18 @@ import PlusSignIcon from "@hugeicons/core-free-icons/PlusSignIcon";
 import TextSelectionIcon from "@hugeicons/core-free-icons/TextSelectionIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { toast } from "sonner";
+import {
+  COMPACT_VIEWPORT_QUERY,
+  useIsCompactViewport,
+} from "@/components/ui/hooks/use-compact-viewport";
+import { ResponsiveDrawerShell } from "@/components/ui/responsive-overlay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { docsRpcContract } from "./server.js";
 import {
   selectionPrompt,
   useActiveNote,
+  useVaultViewOpen,
   type ActiveNote,
   type ActiveNoteState,
   type NoteSelection,
@@ -246,9 +252,14 @@ function composerForTab(
   return matches.at(-1) ?? null;
 }
 
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 type FolderState =
   | { status: "loading" }
-  | { status: "ready"; projectId?: string; hostId?: string }
+  | { status: "ready"; target: { projectId: string; hostId: string } | null }
+  | { status: "missing"; path: string; creating: boolean }
   | { status: "error"; message: string };
 
 function NewChat({
@@ -263,33 +274,47 @@ function NewChat({
   const rpc = useRpc<typeof docsRpcContract>();
   const sdk = useSdk();
   const [folder, setFolder] = useState<FolderState>({ status: "loading" });
+  const resolveFolder = useCallback(
+    async (create: boolean): Promise<FolderState> => {
+      const result = await rpc.call("resolveChatFolder", { vaultId, create });
+      switch (result.kind) {
+        case "default":
+          return { status: "ready", target: null };
+        case "folder":
+          return {
+            status: "ready",
+            target: { projectId: result.projectId, hostId: result.hostId },
+          };
+        case "missing":
+          return { status: "missing", path: result.path, creating: false };
+      }
+    },
+    [rpc, vaultId],
+  );
   useEffect(() => {
     let cancelled = false;
-    rpc
-      .call("resolveChatFolder", { vaultId })
-      .then((result) => {
-        if (cancelled) return;
-        setFolder(
-          result.kind === "folder"
-            ? {
-                status: "ready",
-                projectId: result.projectId,
-                hostId: result.hostId,
-              }
-            : { status: "ready" },
-        );
+    resolveFolder(false)
+      .then((next) => {
+        if (!cancelled) setFolder(next);
       })
       .catch((error: unknown) => {
-        if (cancelled) return;
-        setFolder({
-          status: "error",
-          message: error instanceof Error ? error.message : String(error),
-        });
+        if (!cancelled) setFolder({ status: "error", message: errorText(error) });
       });
     return () => {
       cancelled = true;
     };
-  }, [rpc, vaultId]);
+  }, [resolveFolder]);
+
+  const useVaultFolder = useCallback(() => {
+    setFolder((current) =>
+      current.status === "missing" ? { ...current, creating: true } : current,
+    );
+    resolveFolder(true)
+      .then(setFolder)
+      .catch((error: unknown) =>
+        setFolder({ status: "error", message: errorText(error) }),
+      );
+  }, [resolveFolder]);
 
   const submit = useCallback(
     async (request: NewThreadRequest) => {
@@ -298,19 +323,20 @@ function NewChat({
     },
     [onCreated, sdk, tabId],
   );
+  const target = folder.status === "ready" ? folder.target : null;
   const seed = useMemo(
     () =>
-      folder.status === "ready" && folder.projectId && folder.hostId
+      target
         ? {
-            defaultProjectId: folder.projectId,
+            defaultProjectId: target.projectId,
             defaultEnvironment: {
               type: "host" as const,
-              hostId: folder.hostId,
+              hostId: target.hostId,
               workspace: { type: "unmanaged" as const, path: null },
             },
           }
         : {},
-    [folder],
+    [target],
   );
 
   if (folder.status === "loading")
@@ -328,6 +354,22 @@ function NewChat({
         <p className="border-b border-border px-3 py-2 text-xs text-destructive">
           Could not use the default chat folder: {folder.message}
         </p>
+      ) : null}
+      {folder.status === "missing" ? (
+        <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate" title={folder.path}>
+            Chats can run in {folder.path}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 shrink-0 px-2 text-xs"
+            disabled={folder.creating}
+            onClick={useVaultFolder}
+          >
+            {folder.creating ? "Adding project…" : "Use this folder"}
+          </Button>
+        </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
         <NewThreadComposer
@@ -400,7 +442,7 @@ function PastChats({
 }
 
 const NO_WIKILINK_SELECTOR =
-  "[contenteditable='true'], textarea, input, button, [role='button'], [role='tab']";
+  "pre, code, [contenteditable='true'], textarea, input, button, [role='button'], [role='tab']";
 
 function useVaultLinks(
   root: HTMLElement | null,
@@ -581,7 +623,7 @@ function AttachBar({
       composer.insert(parts, { at: "end", block: true });
       composer.focus();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      toast.error(errorText(error));
     }
   };
   return (
@@ -625,10 +667,12 @@ function FloatingChatWindow({
   state,
   setState,
   pluginId,
+  compact,
 }: {
   state: FloatingChatState;
   setState(update: (current: FloatingChatState) => FloatingChatState): void;
   pluginId: string;
+  compact: boolean;
 }) {
   const settings = useSettings().values;
   const activeNote = useActiveNote();
@@ -722,44 +766,9 @@ function FloatingChatWindow({
     );
   };
 
-  return (
-    <section
-      ref={setRoot}
-      aria-label="Floating chat"
-      className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-xl transition-opacity"
-      style={{
-        right: EDGE_GAP,
-        bottom: EDGE_GAP * 2 + BUBBLE_SIZE - 8,
-        width,
-        height,
-        opacity,
-      }}
-      onPointerEnter={() => setEngaged((value) => ({ ...value, hover: true }))}
-      onPointerLeave={() => setEngaged((value) => ({ ...value, hover: false }))}
-      onFocus={() => setEngaged((value) => ({ ...value, focus: true }))}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-          setEngaged((value) => ({ ...value, focus: false }));
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape" || event.defaultPrevented) return;
-        event.preventDefault();
-        setState((current) => ({ ...current, open: false }));
-      }}
-    >
-      <div
-        role="separator"
-        aria-label="Resize chat window"
-        aria-orientation="horizontal"
-        tabIndex={0}
-        className="absolute left-0 top-0 z-10 size-3 cursor-nwse-resize rounded-br-sm hover:bg-state-hover focus-visible:bg-state-active focus-visible:outline-none"
-        onPointerDown={onGripPointerDown}
-        onPointerMove={onGripPointerMove}
-        onPointerUp={() => {
-          resizeRef.current = null;
-        }}
-        onKeyDown={onGripKeyDown}
-      />
+  const close = () => setState((current) => ({ ...current, open: false }));
+  const body = (
+    <>
       <div className="flex h-10 shrink-0 items-center gap-0.5 border-b border-border pl-3 pr-1">
         <div
           role="tablist"
@@ -882,6 +891,67 @@ function FloatingChatWindow({
           )}
         </>
       )}
+    </>
+  );
+
+  if (compact)
+    return (
+      <ResponsiveDrawerShell
+        open={state.open}
+        onOpenChange={(next) => {
+          if (!next) close();
+        }}
+        srLabel="Floating chat"
+        contentClassName="flex h-[85dvh] flex-col p-0"
+      >
+        <section
+          ref={setRoot}
+          aria-label="Floating chat"
+          className="flex min-h-0 flex-1 flex-col bg-background text-foreground"
+        >
+          {body}
+        </section>
+      </ResponsiveDrawerShell>
+    );
+  return (
+    <section
+      ref={setRoot}
+      aria-label="Floating chat"
+      className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-xl transition-opacity"
+      style={{
+        right: EDGE_GAP,
+        bottom: EDGE_GAP * 2 + BUBBLE_SIZE - 8,
+        width,
+        height,
+        opacity,
+      }}
+      onPointerEnter={() => setEngaged((value) => ({ ...value, hover: true }))}
+      onPointerLeave={() => setEngaged((value) => ({ ...value, hover: false }))}
+      onFocus={() => setEngaged((value) => ({ ...value, focus: true }))}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setEngaged((value) => ({ ...value, focus: false }));
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        event.preventDefault();
+        setState((current) => ({ ...current, open: false }));
+      }}
+    >
+      <div
+        role="separator"
+        aria-label="Resize chat window"
+        aria-orientation="horizontal"
+        tabIndex={0}
+        className="absolute left-0 top-0 z-10 size-3 cursor-nwse-resize rounded-br-sm hover:bg-state-hover focus-visible:bg-state-active focus-visible:outline-none"
+        onPointerDown={onGripPointerDown}
+        onPointerMove={onGripPointerMove}
+        onPointerUp={() => {
+          resizeRef.current = null;
+        }}
+        onKeyDown={onGripKeyDown}
+      />
+      {body}
     </section>
   );
 }
@@ -932,7 +1002,14 @@ export function FloatingChat() {
 function FloatingChatOverlay() {
   const pluginId = experimental_usePluginId();
   const { threads } = experimental_useSidebarThreads();
-  const [state, setStateValue] = useState(readChatState);
+  const compact = useIsCompactViewport();
+  const vaultViewOpen = useVaultViewOpen();
+  const [state, setStateValue] = useState(() => {
+    const stored = readChatState();
+    return window.matchMedia(COMPACT_VIEWPORT_QUERY).matches
+      ? { ...stored, open: false }
+      : stored;
+  });
   const setState = useCallback(
     (update: (current: FloatingChatState) => FloatingChatState) =>
       setStateValue((current) => {
@@ -957,20 +1034,26 @@ function FloatingChatOverlay() {
       ? "running"
       : "none";
 
+  const showBubble = !compact || (vaultViewOpen && !state.open);
   return (
     <>
-      {state.open ? (
+      {compact || state.open ? (
         <FloatingChatWindow
           state={state}
           setState={setState}
           pluginId={pluginId}
+          compact={compact}
         />
       ) : null}
-      <ChatBubble
-        open={state.open}
-        attention={attention}
-        onToggle={() => setState((current) => ({ ...current, open: !current.open }))}
-      />
+      {showBubble ? (
+        <ChatBubble
+          open={state.open}
+          attention={attention}
+          onToggle={() =>
+            setState((current) => ({ ...current, open: !current.open }))
+          }
+        />
+      ) : null}
     </>
   );
 }

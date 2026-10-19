@@ -32,6 +32,8 @@ import {
   type DocumentIO,
 } from "./document-session.js";
 import { Icon } from "@/components/ui/icon";
+import { useIsCompactViewport } from "@/components/ui/hooks/use-compact-viewport";
+import { ResponsiveDrawerShell } from "@/components/ui/responsive-overlay";
 import {
   Tooltip,
   TooltipContent,
@@ -68,6 +70,7 @@ import {
   clearActiveNote,
   selectionLineRange,
   setActiveNote,
+  registerVaultView,
   setActiveVault,
   setNoteSelection,
 } from "./active-note.js";
@@ -335,6 +338,7 @@ const MarkdownTaskInput = Extension.create({
 });
 
 const STYLE_MARKER = "data-bb-simple-notes-styles";
+const SELECTION_REPORT_DELAY_MS = 150;
 const EDITOR_CSS = `
 .bb-simple-notes-editor .tiptap {
   outline: none; width: 100%; max-width: 48em; margin: 0 auto; padding: 3rem 1.5rem 40vh;
@@ -444,7 +448,7 @@ function TiptapEditor(props: {
   inline?: boolean;
   disabled?: boolean;
   onFocusChange?(focused: boolean): void;
-  onSelectionChange?(text: string, markdown: string): void;
+  onSelectionChange?(selection: { text: string; markdown: string } | null): void;
 }) {
   const {
     initialValue,
@@ -583,13 +587,25 @@ function TiptapEditor(props: {
     serializeRef.current = getMarkdown;
     latest.current.onFirstRender(getMarkdown());
     editor.on("update", () => latest.current.onMarkdownChange(getMarkdown()));
+    let selectionTimer: ReturnType<typeof setTimeout> | null = null;
     editor.on("selectionUpdate", () => {
       const report = latest.current.onSelectionChange;
       if (!report) return;
+      if (selectionTimer !== null) clearTimeout(selectionTimer);
+      selectionTimer = null;
       const { from, to } = editor.state.selection;
-      report(editor.state.doc.textBetween(from, to, "\n"), getMarkdown());
+      const text = from === to ? "" : editor.state.doc.textBetween(from, to, "\n");
+      if (!text.trim()) {
+        report(null);
+        return;
+      }
+      selectionTimer = setTimeout(() => {
+        selectionTimer = null;
+        latest.current.onSelectionChange?.({ text, markdown: getMarkdown() });
+      }, SELECTION_REPORT_DELAY_MS);
     });
     return () => {
+      if (selectionTimer !== null) clearTimeout(selectionTimer);
       editor.destroy();
       editorRef.current = null;
     };
@@ -1333,7 +1349,7 @@ function SavedDocumentEditor({
   io: DocumentIO;
   onUpload(file: File): Promise<{ markdownPath: string }>;
   onReload?(): void;
-  onSelectionChange?(text: string, markdown: string): void;
+  onSelectionChange?(selection: { text: string; markdown: string } | null): void;
   errorHint?: string;
 }) {
   const { state, session } = useSavedDocument(io);
@@ -1453,14 +1469,16 @@ function NotePane({
       onReload={() => location.reload()}
       {...(trackSelection
         ? {
-            onSelectionChange: (text: string, markdown: string) =>
+            onSelectionChange: (
+              selection: { text: string; markdown: string } | null,
+            ) =>
               setNoteSelection(
-                text.trim()
+                selection
                   ? {
                       vaultId,
                       path: notePath,
-                      text,
-                      lines: selectionLineRange(markdown, text),
+                      text: selection.text,
+                      lines: selectionLineRange(selection.markdown, selection.text),
                     }
                   : null,
               ),
@@ -2126,21 +2144,38 @@ function writeVaultLayout(layout: { treeOpen: boolean; treeWidth: number }) {
 function VaultSplit({
   tree,
   header,
+  openPath,
   children,
 }: {
   tree: ReactNode;
   header: ReactNode;
+  openPath: string | null;
   children: ReactNode;
 }) {
+  const compact = useIsCompactViewport();
+  const [drawer, setDrawer] = useState<{ openFor: string | null } | null>(null);
+  const drawerOpen = drawer !== null && drawer.openFor === openPath;
+  const setDrawerOpen = (open: boolean) =>
+    setDrawer(open ? { openFor: openPath } : null);
   const [layout, setLayout] = useState(readVaultLayout);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const commit = (next: { treeOpen: boolean; treeWidth: number }) => {
     setLayout(next);
     writeVaultLayout(next);
   };
+  const treeShown = compact ? drawerOpen : layout.treeOpen;
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
-      {layout.treeOpen ? (
+      {compact ? (
+        <ResponsiveDrawerShell
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          srLabel="File tree"
+          contentClassName="flex h-[70dvh] flex-col p-0"
+        >
+          {tree}
+        </ResponsiveDrawerShell>
+      ) : layout.treeOpen ? (
         <>
           <div
             className="flex min-h-0 shrink-0 border-r border-border"
@@ -2200,9 +2235,13 @@ function VaultSplit({
             className="size-7"
             size="icon"
             variant="ghost"
-            aria-label={layout.treeOpen ? "Hide file tree" : "Show file tree"}
-            aria-pressed={layout.treeOpen}
-            onClick={() => commit({ ...layout, treeOpen: !layout.treeOpen })}
+            aria-label={treeShown ? "Hide file tree" : "Show file tree"}
+            aria-pressed={treeShown}
+            onClick={() =>
+              compact
+                ? setDrawerOpen(!drawerOpen)
+                : commit({ ...layout, treeOpen: !layout.treeOpen })
+            }
           >
             <HugeiconsIcon icon={SidebarLeftIcon} className="size-4" />
           </Button>
@@ -2268,6 +2307,10 @@ function NotesWorkspace({
       ? (data.notes.find((note) => note.path === filePath)?.title ??
         documentTitle(filePath))
       : null;
+  useEffect(() => {
+    if (mode !== "vault") return;
+    return registerVaultView();
+  }, [mode]);
   useEffect(() => {
     if (mode !== "vault" || !activeVaultId) return;
     setActiveVault(activeVaultId);
@@ -2484,6 +2527,7 @@ function NotesWorkspace({
         ) : mode === "vault" ? (
           <VaultSplit
             tree={tree}
+            openPath={filePath}
             header={
               <span className="min-w-0 truncate text-xs text-muted-foreground">
                 {data.vault.name}

@@ -133,3 +133,26 @@ export function selectionPrompt(selection: NoteSelection): string {
   const fence = selection.text.includes("```") ? "````" : "```";
   return `Selected text from \`${selection.path}\`${where}:\n${fence}\n${selection.text}\n${fence}\n`;
 }
+
+let vaultViews = 0;
+const vaultViewListeners = new Set<() => void>();
+
+export function registerVaultView(): () => void {
+  vaultViews += 1;
+  for (const listener of vaultViewListeners) listener();
+  return () => {
+    vaultViews -= 1;
+    for (const listener of vaultViewListeners) listener();
+  };
+}
+
+export function useVaultViewOpen(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      vaultViewListeners.add(listener);
+      return () => vaultViewListeners.delete(listener);
+    },
+    () => vaultViews > 0,
+    () => false,
+  );
+}

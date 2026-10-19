@@ -1062,8 +1062,9 @@ settings:
 - `chatDefaultFolder` (default `vault`) is where new floating chats run:
   `vault` uses the folder of the vault last opened in the Vault view, `default`
   uses the usual new-thread defaults, and `folder` uses `chatFolder`. With
-  `vault` or `folder`, bb finds the project whose source is that folder on that
-  host, or creates one the first time. With `vault` and no vault opened yet,
+  `vault` or `folder`, bb selects the project whose source is that folder on
+  that host. If there is none, the chat offers **Use this folder**, which
+  creates it; opening the chat never does. With `vault` and no vault opened yet,
   the usual defaults apply. The composer can still pick another project.
 - `chatFolder` (default empty) is an absolute folder on the server machine,
   used when `chatDefaultFolder` is `folder`. `~/` is expanded.

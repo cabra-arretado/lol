@@ -20,6 +20,10 @@ describe("wikilinks", () => {
     ]);
   });
 
+  it("ignores shell test brackets", () => {
+    expect(findWikilinks('if [[ -n "$x" ]]; then echo [[ok ]] [[ ok]]; fi')).toEqual([]);
+  });
+
   it("resolves exact paths before the shortest note with the same name", () => {
     const paths = ["Ideas.md", "Archive/Ideas.md", "Projects/Launch plan.md", "Site/index.html"].map(
       (path) => ({ path, title: null }),
