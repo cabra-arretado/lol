@@ -1907,11 +1907,11 @@ describe("floating chat folder", () => {
   it("uses the usual default when the setting asks for it or no vault is open", async () => {
     const byDefault = await loadChatFolder({ chatDefaultFolder: "default" });
     await expect(
-      byDefault.harness.callRpc("resolveChatFolder", { vaultId: "personal" }),
+      byDefault.harness.callRpc("resolveChatFolder", { vaultId: "personal", create: true }),
     ).resolves.toEqual({ kind: "default" });
     const noVault = await loadChatFolder({ chatDefaultFolder: "vault" });
     await expect(
-      noVault.harness.callRpc("resolveChatFolder", { vaultId: null }),
+      noVault.harness.callRpc("resolveChatFolder", { vaultId: null, create: true }),
     ).resolves.toEqual({ kind: "default" });
     expect(noVault.harness.sdk.callsTo("projects.create")).toEqual([]);
   });
@@ -1926,12 +1926,25 @@ describe("floating chat folder", () => {
       },
     ]);
     await expect(
-      host.harness.callRpc("resolveChatFolder", { vaultId: "personal" }),
+      host.harness.callRpc("resolveChatFolder", { vaultId: "personal", create: true }),
     ).resolves.toEqual({
       kind: "folder",
       projectId: "proj_notes",
       hostId: "host_primary",
       path: "/home/me/Notes",
+    });
+    expect(host.harness.sdk.callsTo("projects.create")).toEqual([]);
+  });
+
+  it("reports a missing vault project without creating it until asked", async () => {
+    const host = await loadChatFolder({ chatDefaultFolder: "vault" }, []);
+    await expect(
+      host.harness.callRpc("resolveChatFolder", { vaultId: "personal", create: false }),
+    ).resolves.toEqual({
+      kind: "missing",
+      hostId: "host_primary",
+      path: "/home/me/Notes",
+      name: "Personal notes",
     });
     expect(host.harness.sdk.callsTo("projects.create")).toEqual([]);
   });
@@ -1945,12 +1958,12 @@ describe("floating chat folder", () => {
       },
     ]);
     await expect(
-      host.harness.callRpc("resolveChatFolder", { vaultId: "personal" }),
-    ).resolves.toMatchObject({ kind: "folder", projectId: "proj_personal" });
+      host.harness.callRpc("resolveChatFolder", { vaultId: "personal", create: true }),
+    ).resolves.toMatchObject({ kind: "folder", projectId: "proj_personal notes" });
     expect(host.harness.sdk.callsTo("projects.create")).toEqual([
       [
         {
-          name: "Personal",
+          name: "Personal notes",
           source: {
             hostId: "host_primary",
             type: "local_path",
@@ -1967,7 +1980,7 @@ describe("floating chat folder", () => {
       chatFolder: "/work/research",
     });
     await expect(
-      host.harness.callRpc("resolveChatFolder", { vaultId: "personal" }),
+      host.harness.callRpc("resolveChatFolder", { vaultId: "personal", create: true }),
     ).resolves.toEqual({
       kind: "folder",
       projectId: "proj_research",
@@ -1976,14 +1989,14 @@ describe("floating chat folder", () => {
     });
     const empty = await loadChatFolder({ chatDefaultFolder: "folder" });
     await expect(
-      empty.harness.callRpc("resolveChatFolder", { vaultId: null }),
+      empty.harness.callRpc("resolveChatFolder", { vaultId: null, create: true }),
     ).rejects.toThrow('Set "Chat folder"');
     const relative = await loadChatFolder({
       chatDefaultFolder: "folder",
       chatFolder: "research",
     });
     await expect(
-      relative.harness.callRpc("resolveChatFolder", { vaultId: null }),
+      relative.harness.callRpc("resolveChatFolder", { vaultId: null, create: true }),
     ).rejects.toThrow("must be an absolute path");
   });
 });

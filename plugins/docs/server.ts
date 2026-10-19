@@ -505,9 +505,19 @@ export const docsRpcContract = defineRpcContract({
     output: fileWriteSchema,
   },
   resolveChatFolder: {
-    input: z.object({ vaultId: z.string().min(1).nullable() }).strict(),
+    input: z
+      .object({ vaultId: z.string().min(1).nullable(), create: z.boolean() })
+      .strict(),
     output: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("default") }).strict(),
+      z
+        .object({
+          kind: z.literal("missing"),
+          hostId: z.string().min(1),
+          path: z.string().min(1),
+          name: z.string().min(1),
+        })
+        .strict(),
       z
         .object({
           kind: z.literal("folder"),
@@ -1715,7 +1725,7 @@ export default async function plugin(
   }
 
   let chatFolderQueue: Promise<unknown> = Promise.resolve();
-  async function resolveChatFolder(vaultId: string | null) {
+  async function resolveChatFolder(vaultId: string | null, create: boolean) {
     const values = await chatSettings.get();
     const mode = parseChatFolderMode(values.chatDefaultFolder);
     if (mode === "default" || (mode === "vault" && vaultId === null))
@@ -1732,7 +1742,7 @@ export default async function plugin(
       const vault = getVault(vaultId ?? undefined);
       hostId = vault.hostId ?? (await primaryHostId());
       folder = vault.rootPath;
-      name = vault.name;
+      name = `${vault.name} notes`;
     } else {
       const raw = values.chatFolder.trim();
       if (!raw)
@@ -1747,6 +1757,8 @@ export default async function plugin(
     }
     const projects = await bb.sdk.projects.list();
     const existing = findProjectForFolder(projects, hostId, folder);
+    if (existing === null && !create)
+      return { kind: "missing" as const, hostId, path: folder, name };
     const projectId =
       existing ??
       (
@@ -1761,7 +1773,7 @@ export default async function plugin(
   const handlers: PluginRpcHandlers<typeof docsRpcContract> = {
     async resolveChatFolder(input) {
       const result = chatFolderQueue.then(() =>
-        resolveChatFolder(input.vaultId),
+        resolveChatFolder(input.vaultId, input.create),
       );
       chatFolderQueue = result.catch(() => undefined);
       return result;

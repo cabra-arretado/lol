@@ -11,7 +11,9 @@ const WIKILINK = /\[\[([^[\]\n]+?)\]\]/g;
 export function findWikilinks(text: string): Wikilink[] {
   const links: Wikilink[] = [];
   for (const match of text.matchAll(WIKILINK)) {
-    const inner = match[1]!.replace(/\\\|/g, "|");
+    const raw = match[1]!;
+    if (raw !== raw.trim()) continue;
+    const inner = raw.replace(/\\\|/g, "|");
     const pipe = inner.indexOf("|");
     const destination = (pipe === -1 ? inner : inner.slice(0, pipe)).trim();
     const hash = destination.indexOf("#");

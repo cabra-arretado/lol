@@ -92,17 +92,21 @@ provider, and directive are all Docs.
   started. Closing a tab keeps the thread. Escape or **−** hides the window.
 - **Default folder:** new chats run where `chatDefaultFolder` says: the
   folder of the vault last opened in the Vault view (default), the usual
-  new-thread defaults, or `chatFolder`. For a folder, the plugin reuses the
-  project whose source is that folder on that host, or creates one. The
-  `resolveChatFolder` RPC returns this choice.
+  new-thread defaults, or `chatFolder`. For a folder, the composer selects the
+  project whose source is that folder on that host. When there is none, the
+  chat shows **Use this folder**, which creates that project (named
+  "<vault> notes" for a vault) and selects it; opening the chat never creates
+  one. The `resolveChatFolder` RPC returns this choice, and creates the
+  project only when called with `create: true`.
 - **Note context:** while a note is open in the Vault view, **+ File** adds a
   Docs mention of it (its current content is sent with the prompt) and
   **+ Selection** adds the selected text in a fenced block with the note's
   path and, when it can be matched in the file, its line range.
 - **Links:** Markdown links to vault-relative or absolute in-vault `.md`
   paths, such as `[the plan](Projects/launch-plan.md)`, show only their label
-  and open the note in the Vault view. The `docs` skill tells agents to link
-  notes this way. `[[Note]]` and `[[Folder/Note|Label]]` also open the note but
+  and open the note in the Vault view. Relative paths resolve against the
+  chat's working folder, so they reach the vault when the chat runs there (the
+  default). The `docs` skill tells agents to link notes this way in that case. `[[Note]]` and `[[Folder/Note|Label]]` also open the note but
   keep their brackets, with the link underlined. A bare name opens the note
   with that file name nearest the vault root, or else the note with that
   title.
