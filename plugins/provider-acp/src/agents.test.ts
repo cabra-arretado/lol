@@ -322,7 +322,7 @@ describe("acpProviderDeclaration", () => {
     expect(cursor.maintenance?.installation).toBe(true);
   });
 
-  it("launches Kiro V3 with CLI auth and its effortLevel reasoning option", () => {
+  it("launches Kiro V3 with CLI auth and per-model effort discovery", () => {
     const kiro = KNOWN_ACP_AGENTS.find((agent) => agent.id === "acp-kiro")!;
     expect(kiro.launch.command).toBe("kiro-cli");
     expect(kiro.launch.args).toEqual([
@@ -331,8 +331,16 @@ describe("acpProviderDeclaration", () => {
       "--auth-method=cli",
     ]);
     expect(kiro.dialect).toBe("kiro");
-    expect(kiro.launch.nativeReasoning?.configId).toBe("effortLevel");
+    expect(kiro.launch.nativeReasoning).toBeUndefined();
     const declaration = acpProviderDeclaration(kiro);
+    expect(declaration.capabilities.reasoningLevels).toEqual([
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ]);
     expect(declaration.experimental_visibility).toBe("installed");
     expect(declaration.capabilities.fork).toBe("none");
     expect(RESERVED_ACP_PROVIDER_IDS.has("acp-kiro")).toBe(false);

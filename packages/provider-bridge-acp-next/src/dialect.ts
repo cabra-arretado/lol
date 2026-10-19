@@ -37,6 +37,7 @@ type AcpCompactionOutcome =
 export interface AcpDialect {
   readonly id: string;
   readonly oneTimeApprovalsOnly?: boolean;
+  readonly modelCatalogArrivesLate?: boolean;
   toolIdentity?(event: AcpToolCallUpdateEvent): AcpToolIdentity | undefined;
   classifyToolCall?(
     event: AcpToolCallUpdateEvent,
@@ -453,6 +454,7 @@ export const OPENCODE_ACP_DIALECT: AcpDialect = {
 export const KIRO_ACP_DIALECT: AcpDialect = {
   id: "kiro",
   oneTimeApprovalsOnly: true,
+  modelCatalogArrivesLate: true,
 };
 
 const BUILT_IN_DIALECTS: readonly AcpDialect[] = [

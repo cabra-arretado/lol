@@ -591,6 +591,7 @@ const ACP_DEFAULT_MODEL: AvailableModel = {
 
 const MODEL_LIST_TIMEOUT_MS = 30_000;
 const ACP_NATIVE_REASONING_DISCOVERY_TIMEOUT_MS = 5_000;
+const LATE_MODEL_CATALOG_TIMEOUT_MS = 10_000;
 const AUTH_REQUIRED_MODEL_LIST_ERROR_MESSAGE =
   "ACP agent is not authenticated.";
 
@@ -1100,6 +1101,71 @@ function settleDeclaredSessionOptions(key: string): ThreadSessionOption[] {
   return [];
 }
 
+function hasAcpModelCatalog(
+  configOptions: readonly AcpConfigOption[] | undefined,
+): boolean {
+  return (findAcpModelConfigOption(configOptions)?.options?.length ?? 0) > 1;
+}
+
+function createDiscoveryConfigUpdates() {
+  const latestBySessionId = new Map<string, readonly AcpConfigOption[]>();
+  const listeners = new Set<() => void>();
+  return {
+    record(method: string, params: unknown): void {
+      if (method !== "session/update") {
+        return;
+      }
+      const notification = acpSessionNotificationParamsSchema.safeParse(params);
+      if (
+        !notification.success ||
+        notification.data.update.sessionUpdate !== "config_option_update"
+      ) {
+        return;
+      }
+      const configState = acpConfigStateResultSchema.safeParse(
+        notification.data.update,
+      );
+      if (!configState.success || !configState.data.configOptions) {
+        return;
+      }
+      latestBySessionId.set(
+        notification.data.sessionId,
+        configState.data.configOptions,
+      );
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    waitForModelCatalog(
+      sessionId: string,
+      timeoutMs: number,
+    ): Promise<readonly AcpConfigOption[] | undefined> {
+      return new Promise((resolve) => {
+        const check = () => {
+          const configOptions = latestBySessionId.get(sessionId);
+          if (!hasAcpModelCatalog(configOptions)) {
+            return false;
+          }
+          clearTimeout(timer);
+          listeners.delete(onUpdate);
+          resolve(configOptions);
+          return true;
+        };
+        const onUpdate = () => {
+          check();
+        };
+        const timer = setTimeout(() => {
+          listeners.delete(onUpdate);
+          resolve(undefined);
+        }, timeoutMs);
+        if (!check()) {
+          listeners.add(onUpdate);
+        }
+      });
+    },
+  };
+}
+
 async function loadSessionDiscoveredModels(
   agent: AcpAgentCommandParam,
   reasoningProbePriorityModelIds: readonly string[],
@@ -1123,6 +1189,8 @@ async function loadSessionDiscoveredModels(
     ...withoutBridgeRuntimeEnv(process.env),
     ...(agent.envVars ?? {}),
   };
+  const dialect = resolveAcpDialect({ dialectId, command: agent.command });
+  const configUpdates = createDiscoveryConfigUpdates();
   const connection = createAcpAgentConnection({
     command: agent.command,
     args: agent.args,
@@ -1137,7 +1205,7 @@ async function loadSessionDiscoveredModels(
         );
       }
     },
-    onNotification: () => {},
+    onNotification: configUpdates.record,
     onRequest: (_method, _params, responder) => {
       responder.error(-32601, "ACP model discovery does not support requests");
     },
@@ -1177,7 +1245,19 @@ async function loadSessionDiscoveredModels(
           resultSchema: acpSessionNewResultSchema,
         });
         discoverySession = { capabilities, sessionId: created.sessionId };
-        return created;
+        if (
+          dialect.modelCatalogArrivesLate !== true ||
+          hasAcpModelCatalog(created.configOptions)
+        ) {
+          return created;
+        }
+        const lateConfigOptions = await configUpdates.waitForModelCatalog(
+          created.sessionId,
+          LATE_MODEL_CATALOG_TIMEOUT_MS,
+        );
+        return lateConfigOptions === undefined
+          ? created
+          : { ...created, configOptions: lateConfigOptions };
       })(),
       timeoutReached,
     ]);

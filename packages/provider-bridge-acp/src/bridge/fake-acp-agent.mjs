@@ -22,6 +22,10 @@
  *                            → make `--list-models` fail with this stderr
  * - FAKE_ACP_MODEL_CONFIG=1  → advertise a model configOptions select
  * - FAKE_ACP_MODELS_FIELD=1  → advertise legacy ACP models state
+ * - FAKE_ACP_LATE_MODEL_CONFIG_MS=<ms>
+ *                            → answer session/new with only the current model,
+ *                              then send the full catalog in a
+ *                              config_option_update after this delay
  * - FAKE_ACP_THOUGHT_LEVEL_CONFIG=1
  *                            → advertise per-model effort configOptions
  * - FAKE_ACP_INITIAL_FAST    → set the initial Fast mode value
@@ -88,6 +92,10 @@ const usageOnLoad = process.env.FAKE_ACP_USAGE_ON_LOAD === "1";
 const usageSessionId = process.env.FAKE_ACP_USAGE_SESSION_ID;
 const modelConfig = process.env.FAKE_ACP_MODEL_CONFIG === "1";
 const modelsField = process.env.FAKE_ACP_MODELS_FIELD === "1";
+const lateModelConfigMs =
+  process.env.FAKE_ACP_LATE_MODEL_CONFIG_MS === undefined
+    ? undefined
+    : Number(process.env.FAKE_ACP_LATE_MODEL_CONFIG_MS);
 const thoughtLevelConfig = process.env.FAKE_ACP_THOUGHT_LEVEL_CONFIG === "1";
 const grokContext = process.env.FAKE_ACP_GROK_CONTEXT === "1";
 const unmappedReasoningConfig =
@@ -723,6 +731,30 @@ async function handleMessage(message) {
       }
       activeSessionId = sessionId;
       captureMcpServers(message);
+      if (lateModelConfigMs !== undefined) {
+        const state = configState();
+        sendSessionResponse(message, {
+          sessionId: activeSessionId,
+          ...state,
+          configOptions: state.configOptions?.map((option) =>
+            option.category === "model"
+              ? {
+                  ...option,
+                  options: option.options.filter(
+                    (model) => model.value === option.currentValue,
+                  ),
+                }
+              : option,
+          ),
+        });
+        setTimeout(() => {
+          notifyUpdate({
+            sessionUpdate: "config_option_update",
+            configOptions: configOptions(),
+          });
+        }, lateModelConfigMs);
+        return;
+      }
       sendSessionResponse(message, {
         sessionId: activeSessionId,
         ...configState(),

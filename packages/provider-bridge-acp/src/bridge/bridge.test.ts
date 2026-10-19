@@ -753,6 +753,47 @@ describe("acp bridge", () => {
     });
   });
 
+  it("waits for a Kiro model catalog that arrives after session/new", async () => {
+    const modelListId = sendModelList({
+      dialectId: "kiro",
+      envVars: {
+        FAKE_ACP_MODEL_CONFIG: "1",
+        FAKE_ACP_THOUGHT_LEVEL_CONFIG: "1",
+        FAKE_ACP_LATE_MODEL_CONFIG_MS: "200",
+      },
+    });
+
+    expect((await waitForResponse(modelListId)).result).toMatchObject({
+      models: [
+        { id: "fake/default", isDefault: true },
+        {
+          id: "fake/strong",
+          supportedReasoningEfforts: [
+            { reasoningEffort: "none" },
+            { reasoningEffort: "low" },
+            { reasoningEffort: "medium" },
+            { reasoningEffort: "high" },
+            { reasoningEffort: "xhigh" },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("does not wait for a late model catalog outside dialects that send one", async () => {
+    const modelListId = sendModelList({
+      envVars: {
+        FAKE_ACP_MODEL_CONFIG: "1",
+        FAKE_ACP_LATE_MODEL_CONFIG_MS: "200",
+      },
+    });
+
+    const result = (await waitForResponse(modelListId)).result as {
+      models: { id: string }[];
+    };
+    expect(result.models.map((model) => model.id)).toEqual(["fake/default"]);
+  });
+
   it("keeps probing reasoning for later models after one model's probe fails", async () => {
     const modelListId = sendModelList({
       envVars: {

@@ -565,6 +565,7 @@ const ACP_DEFAULT_MODEL: AvailableModel = {
 
 const MODEL_LIST_TIMEOUT_MS = 30_000;
 const ACP_NATIVE_REASONING_DISCOVERY_TIMEOUT_MS = 5_000;
+const LATE_MODEL_CATALOG_TIMEOUT_MS = 10_000;
 const AUTH_REQUIRED_MODEL_LIST_ERROR_MESSAGE =
   "ACP agent is not authenticated.";
 
@@ -842,10 +843,76 @@ async function loadAgentModelCatalog(
   return catalog;
 }
 
+function hasAcpModelCatalog(
+  configOptions: readonly AcpConfigOption[] | undefined,
+): boolean {
+  return (findAcpModelConfigOption(configOptions)?.options?.length ?? 0) > 1;
+}
+
+function createDiscoveryConfigUpdates() {
+  const latestBySessionId = new Map<string, readonly AcpConfigOption[]>();
+  const listeners = new Set<() => void>();
+  return {
+    record(method: string, params: unknown): void {
+      if (method !== "session/update") {
+        return;
+      }
+      const notification = acpSessionNotificationParamsSchema.safeParse(params);
+      if (
+        !notification.success ||
+        notification.data.update.sessionUpdate !== "config_option_update"
+      ) {
+        return;
+      }
+      const configState = acpConfigStateResultSchema.safeParse(
+        notification.data.update,
+      );
+      if (!configState.success || !configState.data.configOptions) {
+        return;
+      }
+      latestBySessionId.set(
+        notification.data.sessionId,
+        configState.data.configOptions,
+      );
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    waitForModelCatalog(
+      sessionId: string,
+      timeoutMs: number,
+    ): Promise<readonly AcpConfigOption[] | undefined> {
+      return new Promise((resolve) => {
+        const check = () => {
+          const configOptions = latestBySessionId.get(sessionId);
+          if (!hasAcpModelCatalog(configOptions)) {
+            return false;
+          }
+          clearTimeout(timer);
+          listeners.delete(onUpdate);
+          resolve(configOptions);
+          return true;
+        };
+        const onUpdate = () => {
+          check();
+        };
+        const timer = setTimeout(() => {
+          listeners.delete(onUpdate);
+          resolve(undefined);
+        }, timeoutMs);
+        if (!check()) {
+          listeners.add(onUpdate);
+        }
+      });
+    },
+  };
+}
+
 async function loadSessionDiscoveredModels(
   agent: AcpAgentCommandParam,
   reasoningProbePriorityModelIds: readonly string[],
   parameterizedModelPicker: boolean,
+  dialect: AcpDialect,
 ): Promise<AvailableModel[] | null> {
   const key = JSON.stringify({
     agent,
@@ -864,13 +931,14 @@ async function loadSessionDiscoveredModels(
     ...withoutBridgeRuntimeEnv(process.env),
     ...(agent.envVars ?? {}),
   };
+  const configUpdates = createDiscoveryConfigUpdates();
   const connection = createBridgeAgentConnection({
     command: agent.command,
     args: agent.args,
     cwd: agent.cwd ?? process.cwd(),
     env: childEnv,
     recordThreadId: null,
-    onNotification: () => {},
+    onNotification: configUpdates.record,
     onRequest: (_method, _params, responder) => {
       responder.error(-32601, "ACP model discovery does not support requests");
     },
@@ -901,11 +969,24 @@ async function loadSessionDiscoveredModels(
           env: childEnv,
           initializeResult,
         });
-        return await connection.request({
+        const created = await connection.request({
           method: "session/new",
           params: { cwd: agent.cwd ?? process.cwd(), mcpServers: [] },
           resultSchema: acpSessionNewResultSchema,
         });
+        if (
+          dialect.modelCatalogArrivesLate !== true ||
+          hasAcpModelCatalog(created.configOptions)
+        ) {
+          return created;
+        }
+        const lateConfigOptions = await configUpdates.waitForModelCatalog(
+          created.sessionId,
+          LATE_MODEL_CATALOG_TIMEOUT_MS,
+        );
+        return lateConfigOptions === undefined
+          ? created
+          : { ...created, configOptions: lateConfigOptions };
       })(),
       timeoutReached,
     ]);
@@ -2673,6 +2754,7 @@ async function handleModelList(
         params.agent,
         params.reasoningProbePriorityModelIds,
         params.parameterizedModelPicker,
+        resolveAcpDialect({ dialectId, command: params.agent.command }),
       )
     : null;
   if (sessionDiscoveredModels) {

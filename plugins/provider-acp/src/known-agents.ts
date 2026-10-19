@@ -207,16 +207,12 @@ export const KNOWN_ACP_AGENTS: readonly AcpAgentDefinition[] = [
     visibility: "installed",
     dialect: "kiro",
     fork: "none",
-    reasoningLevels: ["low", "medium", "high"],
+    reasoningLevels: ["none", "low", "medium", "high", "xhigh", "max"],
     launch: {
       displayName: "Kiro",
       command: "kiro-cli",
       args: ["acp", "--agent-engine=v3", "--auth-method=cli"],
       env: {},
-      nativeReasoning: {
-        configId: "effortLevel",
-        supportedLevels: ["low", "medium", "high"],
-      },
     },
     nativeRootsResolver: resolveKiroNativeRoots,
   },
