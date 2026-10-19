@@ -25,7 +25,8 @@
  * - FAKE_ACP_LATE_MODEL_CONFIG_MS=<ms>
  *                            → answer session/new with only the current model,
  *                              then send the full catalog in a
- *                              config_option_update after this delay
+ *                              config_option_update after this delay; 0 sends
+ *                              the update before the session/new response
  * - FAKE_ACP_THOUGHT_LEVEL_CONFIG=1
  *                            → advertise per-model effort configOptions
  * - FAKE_ACP_INITIAL_FAST    → set the initial Fast mode value
@@ -732,6 +733,15 @@ async function handleMessage(message) {
       activeSessionId = sessionId;
       captureMcpServers(message);
       if (lateModelConfigMs !== undefined) {
+        const sendLateCatalog = () => {
+          notifyUpdate({
+            sessionUpdate: "config_option_update",
+            configOptions: configOptions(),
+          });
+        };
+        if (lateModelConfigMs === 0) {
+          sendLateCatalog();
+        }
         const state = configState();
         sendSessionResponse(message, {
           sessionId: activeSessionId,
@@ -747,12 +757,9 @@ async function handleMessage(message) {
               : option,
           ),
         });
-        setTimeout(() => {
-          notifyUpdate({
-            sessionUpdate: "config_option_update",
-            configOptions: configOptions(),
-          });
-        }, lateModelConfigMs);
+        if (lateModelConfigMs > 0) {
+          setTimeout(sendLateCatalog, lateModelConfigMs);
+        }
         return;
       }
       sendSessionResponse(message, {

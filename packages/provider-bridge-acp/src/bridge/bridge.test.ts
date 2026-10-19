@@ -753,9 +753,30 @@ describe("acp bridge", () => {
     });
   });
 
+  const kiroEffortHint = {
+    configId: "effortLevel",
+    supportedLevels: ["none", "low", "medium", "high", "xhigh", "max"],
+  } satisfies AgentLaunchArgs["nativeReasoning"];
+
+  function reasoningByModel(result: unknown): Record<string, string[]> {
+    const { models } = result as {
+      models: {
+        id: string;
+        supportedReasoningEfforts: { reasoningEffort: string }[];
+      }[];
+    };
+    return Object.fromEntries(
+      models.map((model) => [
+        model.id,
+        model.supportedReasoningEfforts.map((effort) => effort.reasoningEffort),
+      ]),
+    );
+  }
+
   it("waits for a Kiro model catalog that arrives after session/new", async () => {
     const modelListId = sendModelList({
       dialectId: "kiro",
+      nativeReasoning: kiroEffortHint,
       envVars: {
         FAKE_ACP_MODEL_CONFIG: "1",
         FAKE_ACP_THOUGHT_LEVEL_CONFIG: "1",
@@ -763,35 +784,68 @@ describe("acp bridge", () => {
       },
     });
 
-    expect((await waitForResponse(modelListId)).result).toMatchObject({
-      models: [
-        { id: "fake/default", isDefault: true },
-        {
-          id: "fake/strong",
-          supportedReasoningEfforts: [
-            { reasoningEffort: "none" },
-            { reasoningEffort: "low" },
-            { reasoningEffort: "medium" },
-            { reasoningEffort: "high" },
-            { reasoningEffort: "xhigh" },
-          ],
-        },
-      ],
+    expect(
+      reasoningByModel((await waitForResponse(modelListId)).result),
+    ).toEqual({
+      "fake/default": [],
+      "fake/strong": ["none", "low", "medium", "high", "xhigh"],
     });
   });
 
-  it("does not wait for a late model catalog outside dialects that send one", async () => {
+  it("uses a Kiro model catalog sent before the session/new response", async () => {
     const modelListId = sendModelList({
+      dialectId: "kiro",
       envVars: {
         FAKE_ACP_MODEL_CONFIG: "1",
-        FAKE_ACP_LATE_MODEL_CONFIG_MS: "200",
+        FAKE_ACP_LATE_MODEL_CONFIG_MS: "0",
       },
     });
 
-    const result = (await waitForResponse(modelListId)).result as {
-      models: { id: string }[];
-    };
-    expect(result.models.map((model) => model.id)).toEqual(["fake/default"]);
+    expect(
+      Object.keys(
+        reasoningByModel((await waitForResponse(modelListId)).result),
+      ),
+    ).toEqual(["fake/default", "fake/strong"]);
+  });
+
+  it("fails Kiro discovery instead of caching one model when the catalog never arrives", async () => {
+    let modelListId: number;
+    vi.useFakeTimers();
+    try {
+      modelListId = sendModelList({
+        dialectId: "kiro",
+        envVars: {
+          FAKE_ACP_MODEL_CONFIG: "1",
+          FAKE_ACP_LATE_MODEL_CONFIG_MS: "600000",
+        },
+      });
+      for (let step = 0; step < 40 && !findResponse(modelListId); step += 1) {
+        await new Promise((resolveTick) => realSetTimeout(resolveTick, 20));
+        await vi.advanceTimersByTimeAsync(1_000);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect((await waitForResponse(modelListId!)).error?.message).toMatch(
+      /did not send its model list in time/,
+    );
+  });
+
+  it("does not wait for a late model catalog outside dialects that send one", async () => {
+    const startedAt = Date.now();
+    const modelListId = sendModelList({
+      envVars: {
+        FAKE_ACP_MODEL_CONFIG: "1",
+        FAKE_ACP_LATE_MODEL_CONFIG_MS: "3000",
+      },
+    });
+
+    const response = await waitForResponse(modelListId);
+    expect(Date.now() - startedAt).toBeLessThan(2_500);
+    expect(Object.keys(reasoningByModel(response.result))).toEqual([
+      "fake/default",
+    ]);
   });
 
   it("keeps probing reasoning for later models after one model's probe fails", async () => {

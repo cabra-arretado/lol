@@ -376,7 +376,10 @@ describe("acpProviderDeclaration", () => {
       "--auth-method=cli",
     ]);
     expect(kiro.dialect).toBe("kiro");
-    expect(kiro.launch.nativeReasoning).toBeUndefined();
+    expect(kiro.launch.nativeReasoning).toEqual({
+      configId: "effortLevel",
+      supportedLevels: ["none", "low", "medium", "high", "xhigh", "max"],
+    });
     const declaration = acpProviderDeclaration(kiro);
     expect(declaration.capabilities.reasoningLevels).toEqual([
       "none",

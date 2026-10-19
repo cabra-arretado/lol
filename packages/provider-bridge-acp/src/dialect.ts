@@ -38,6 +38,7 @@ export interface AcpDialect {
   readonly id: string;
   readonly oneTimeApprovalsOnly?: boolean;
   readonly modelCatalogArrivesLate?: boolean;
+  readonly modelCatalogDeclaresReasoning?: boolean;
   toolIdentity?(event: AcpToolCallUpdateEvent): AcpToolIdentity | undefined;
   classifyToolCall?(
     event: AcpToolCallUpdateEvent,
@@ -453,6 +454,7 @@ export const KIRO_ACP_DIALECT: AcpDialect = {
   id: "kiro",
   oneTimeApprovalsOnly: true,
   modelCatalogArrivesLate: true,
+  modelCatalogDeclaresReasoning: true,
 };
 
 const DIALECTS_BY_ID: ReadonlyMap<string, AcpDialect> = new Map([
