@@ -565,6 +565,8 @@ const ACP_DEFAULT_MODEL: AvailableModel = {
 
 const MODEL_LIST_TIMEOUT_MS = 30_000;
 const ACP_NATIVE_REASONING_DISCOVERY_TIMEOUT_MS = 5_000;
+const LATE_MODEL_CATALOG_TIMEOUT_MS = 10_000;
+const LATE_MODEL_CATALOG_HEADROOM_MS = 5_000;
 const AUTH_REQUIRED_MODEL_LIST_ERROR_MESSAGE =
   "ACP agent is not authenticated.";
 
@@ -842,15 +844,106 @@ async function loadAgentModelCatalog(
   return catalog;
 }
 
+function hasAcpModelCatalog(
+  configOptions: readonly AcpConfigOption[] | undefined,
+): boolean {
+  return (findAcpModelConfigOption(configOptions)?.options?.length ?? 0) > 1;
+}
+
+function createDiscoveryConfigUpdates() {
+  const latestBySessionId = new Map<string, readonly AcpConfigOption[]>();
+  const waiters = new Set<() => void>();
+  let closed = false;
+  const wakeAll = () => {
+    for (const wake of [...waiters]) {
+      wake();
+    }
+  };
+  return {
+    record(method: string, params: unknown): void {
+      if (method !== "session/update") {
+        return;
+      }
+      const notification = acpSessionNotificationParamsSchema.safeParse(params);
+      if (
+        !notification.success ||
+        notification.data.update.sessionUpdate !== "config_option_update"
+      ) {
+        return;
+      }
+      const configState = acpConfigStateResultSchema.safeParse(
+        notification.data.update,
+      );
+      if (!configState.success || !configState.data.configOptions) {
+        return;
+      }
+      latestBySessionId.set(
+        notification.data.sessionId,
+        configState.data.configOptions,
+      );
+      wakeAll();
+    },
+    close(): void {
+      closed = true;
+      wakeAll();
+    },
+    waitForModelCatalog(
+      sessionId: string,
+      timeoutMs: number,
+    ): Promise<readonly AcpConfigOption[] | undefined> {
+      return new Promise((resolve) => {
+        const settle = (
+          configOptions: readonly AcpConfigOption[] | undefined,
+        ) => {
+          clearTimeout(timer);
+          waiters.delete(wake);
+          resolve(configOptions);
+        };
+        const wake = () => {
+          const configOptions = latestBySessionId.get(sessionId);
+          if (hasAcpModelCatalog(configOptions)) {
+            settle(configOptions);
+          } else if (closed) {
+            settle(undefined);
+          }
+        };
+        const timer = setTimeout(() => settle(undefined), timeoutMs);
+        waiters.add(wake);
+        wake();
+      });
+    },
+  };
+}
+
+function lateModelCatalogWaitMs(discoveryStartedAt: number): number {
+  const remainingMs =
+    MODEL_LIST_TIMEOUT_MS -
+    ACP_NATIVE_REASONING_DISCOVERY_TIMEOUT_MS -
+    LATE_MODEL_CATALOG_HEADROOM_MS -
+    (Date.now() - discoveryStartedAt);
+  return Math.max(0, Math.min(LATE_MODEL_CATALOG_TIMEOUT_MS, remainingMs));
+}
+
+class AcpLateModelCatalogError extends Error {
+  constructor() {
+    super(
+      "The agent started a session but did not send its model list in time",
+    );
+    this.name = "AcpLateModelCatalogError";
+  }
+}
+
 async function loadSessionDiscoveredModels(
   agent: AcpAgentCommandParam,
   reasoningProbePriorityModelIds: readonly string[],
   parameterizedModelPicker: boolean,
+  dialectId: string,
 ): Promise<AvailableModel[] | null> {
   const key = JSON.stringify({
     agent,
     reasoningProbePriorityModelIds,
     parameterizedModelPicker,
+    dialectId,
   });
   if (
     cachedSessionDiscoveredModels?.key === key &&
@@ -864,17 +957,22 @@ async function loadSessionDiscoveredModels(
     ...withoutBridgeRuntimeEnv(process.env),
     ...(agent.envVars ?? {}),
   };
+  const dialect = resolveAcpDialect({ dialectId, command: agent.command });
+  const discoveryStartedAt = Date.now();
+  const configUpdates = createDiscoveryConfigUpdates();
   const connection = createBridgeAgentConnection({
     command: agent.command,
     args: agent.args,
     cwd: agent.cwd ?? process.cwd(),
     env: childEnv,
     recordThreadId: null,
-    onNotification: () => {},
+    onNotification: configUpdates.record,
     onRequest: (_method, _params, responder) => {
       responder.error(-32601, "ACP model discovery does not support requests");
     },
-    onExit: () => {},
+    onExit: () => {
+      configUpdates.close();
+    },
   });
 
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -901,11 +999,25 @@ async function loadSessionDiscoveredModels(
           env: childEnv,
           initializeResult,
         });
-        return await connection.request({
+        const created = await connection.request({
           method: "session/new",
           params: { cwd: agent.cwd ?? process.cwd(), mcpServers: [] },
           resultSchema: acpSessionNewResultSchema,
         });
+        if (
+          dialect.modelCatalogArrivesLate !== true ||
+          hasAcpModelCatalog(created.configOptions)
+        ) {
+          return created;
+        }
+        const lateConfigOptions = await configUpdates.waitForModelCatalog(
+          created.sessionId,
+          lateModelCatalogWaitMs(discoveryStartedAt),
+        );
+        if (lateConfigOptions === undefined) {
+          throw new AcpLateModelCatalogError();
+        }
+        return { ...created, configOptions: lateConfigOptions };
       })(),
       timeoutReached,
     ]);
@@ -935,6 +1047,8 @@ async function loadSessionDiscoveredModels(
       sessionId: newSession.sessionId,
       modelOption,
       reasoningProbePriorityModelIds,
+      modelsWithoutThoughtLevelHaveNoEffort:
+        dialect.modelCatalogDeclaresReasoning === true,
     });
     const models = buildModelCatalogFromConfigOptions(
       modelOption,
@@ -947,6 +1061,9 @@ async function loadSessionDiscoveredModels(
     };
     return models;
   } catch (error) {
+    if (error instanceof AcpLateModelCatalogError) {
+      throw error;
+    }
     process.stderr.write(
       `acp bridge: ACP-native model discovery for "${agent.command}" failed: ${
         error instanceof Error ? error.message : String(error)
@@ -957,6 +1074,7 @@ async function loadSessionDiscoveredModels(
     if (timeout !== undefined) {
       clearTimeout(timeout);
     }
+    configUpdates.close();
     await connection.kill();
   }
 }
@@ -966,6 +1084,7 @@ async function discoverAcpNativeReasoningByModel(args: {
   sessionId: string;
   modelOption: AcpConfigOption | undefined;
   reasoningProbePriorityModelIds: readonly string[];
+  modelsWithoutThoughtLevelHaveNoEffort: boolean;
 }): Promise<ReadonlyMap<string, AcpNativeReasoningSupport>> {
   const modelOptions = args.modelOption?.options ?? [];
   if (!args.modelOption || modelOptions.length === 0) {
@@ -1017,11 +1136,18 @@ async function discoverAcpNativeReasoningByModel(args: {
               },
               resultSchema: acpConfigStateResultSchema,
             });
+            const thoughtLevelOption = findAcpThoughtLevelConfigOption(
+              configState.configOptions,
+            );
             supportByModel.set(
               model.value,
-              buildAcpNativeReasoningSupport(
-                findAcpThoughtLevelConfigOption(configState.configOptions),
-              ),
+              thoughtLevelOption === undefined &&
+                args.modelsWithoutThoughtLevelHaveNoEffort
+                ? {
+                    supportedReasoningEfforts: [],
+                    defaultReasoningEffort: "medium",
+                  }
+                : buildAcpNativeReasoningSupport(thoughtLevelOption),
             );
           } catch (error) {
             if (timedOut) {
@@ -2639,13 +2765,20 @@ async function handleModelList(
   params: AcpModelListParams,
   dialectId: string | undefined,
 ): Promise<void> {
-  function sendModels(models: readonly AvailableModel[]): void {
+  const dialect = resolveAcpDialect({
+    dialectId,
+    command: params.agent?.command ?? "",
+  });
+  function sendModels(
+    models: readonly AvailableModel[],
+    nativeReasoning: AcpBridgeNativeReasoning | undefined,
+  ): void {
     sendResult(
       id,
       splitPrimaryModels(
         applyConfiguredReasoningToModels(models, {
           reasoningCli: params.reasoningCli,
-          nativeReasoning: params.nativeReasoning,
+          nativeReasoning,
         }),
         params.primaryModels,
       ),
@@ -2660,6 +2793,7 @@ async function handleModelList(
       params.parameterizedModelPicker && dialectId === "cursor"
         ? buildCursorParameterizedModelCatalog(catalog.models)
         : catalog.models,
+      params.nativeReasoning,
     );
     return;
   }
@@ -2673,10 +2807,16 @@ async function handleModelList(
         params.agent,
         params.reasoningProbePriorityModelIds,
         params.parameterizedModelPicker,
+        dialect.id,
       )
     : null;
   if (sessionDiscoveredModels) {
-    sendModels(sessionDiscoveredModels);
+    sendModels(
+      sessionDiscoveredModels,
+      dialect.modelCatalogDeclaresReasoning === true
+        ? undefined
+        : params.nativeReasoning,
+    );
     return;
   }
   sendResult(id, {
