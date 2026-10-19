@@ -76,6 +76,49 @@ provider, and directive are all Docs.
   ::docs{vault="personal" path="plans/release-plan.md" title="Release plan"}
   ```
 
+## Vault view and floating chat
+
+- **Vault view:** the Vault entry in the navigation opens a vault with the
+  file tree on the left and the selected note in the middle, at
+  `/plugins/simple-notes/vault/<vault>/<path>`. The tree can be hidden or
+  resized by dragging or with the arrow keys; both are remembered on this
+  device. The Docs view is unchanged.
+- **Floating chat:** a bubble in the bottom-right corner of every screen opens
+  a floating chat window. Each tab is an ordinary bb thread, started with the
+  standard new-thread composer and listed in the thread sidebar. Chats keep
+  running while the window is hidden; the bubble shows a dot while one works,
+  and a warning dot while one waits for an approval or answer. **+** opens
+  another tab (up to five) and **Past chats** lists the chats this plugin
+  started. Closing a tab keeps the thread. Escape or **−** hides the window.
+- **Default folder:** new chats run where `chatDefaultFolder` says: the
+  folder of the vault last opened in the Vault view (default), the usual
+  new-thread defaults, or `chatFolder`. For a folder, the composer selects the
+  project whose source is that folder on that host. When there is none, the
+  chat shows **Use this folder**, which creates that project (named
+  "<vault> notes" for a vault) and selects it; opening the chat never creates
+  one. The `resolveChatFolder` RPC returns this choice, and creates the
+  project only when called with `create: true`.
+- **Note context:** while a note is open in the Vault view, **+ File** adds a
+  Docs mention of it (its current content is sent with the prompt) and
+  **+ Selection** adds the selected text in a fenced block with the note's
+  path and, when it can be matched in the file, its line range.
+- **Links:** Markdown links to vault-relative or absolute in-vault `.md`
+  paths, such as `[the plan](Projects/launch-plan.md)`, show only their label
+  and open the note in the Vault view. Relative paths resolve against the
+  chat's working folder, so they reach the vault when the chat runs there (the
+  default). The `docs` skill tells agents to link notes this way in that case. `[[Note]]` and `[[Folder/Note|Label]]` also open the note but
+  keep their brackets, with the link underlined. A bare name opens the note
+  with that file name nearest the vault root, or else the note with that
+  title.
+- **Opacity and size:** the window uses `chatOpacityActive` while the pointer
+  is over it or it has focus and `chatOpacityIdle` otherwise. Drag the grip
+  in its top-left corner, or focus it and use the arrow keys, to resize it.
+
+```sh
+bb plugin config simple-notes set floatingChat false
+bb plugin config simple-notes set chatDefaultFolder default
+```
+
 ## Agent skill
 
 The plugin ships `skills/docs/SKILL.md`. Installed agents are taught to use the

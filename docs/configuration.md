@@ -1051,6 +1051,36 @@ bb plugin config provider-retry set maximumWait "24 hours"
 Disable it with `bb plugin disable provider-retry`. See the `provider-retry`
 skill.
 
+### Docs plugin
+
+The builtin Docs plugin (`simple-notes`) adds a Vault view (file tree beside
+the open note) and a floating chat that is available on every screen. Its
+settings:
+
+- `floatingChat` (default `true`) shows the chat bubble in the bottom-right
+  corner.
+- `chatDefaultFolder` (default `vault`) is where new floating chats run:
+  `vault` uses the folder of the vault last opened in the Vault view, `default`
+  uses the usual new-thread defaults, and `folder` uses `chatFolder`. With
+  `vault` or `folder`, bb selects the project whose source is that folder on
+  that host. If there is none, the chat offers **Use this folder**, which
+  creates it; opening the chat never does. With `vault` and no vault opened yet,
+  the usual defaults apply. The composer can still pick another project.
+- `chatFolder` (default empty) is an absolute folder on the server machine,
+  used when `chatDefaultFolder` is `folder`. `~/` is expanded.
+- `chatOpacityActive` (default `100`) and `chatOpacityIdle` (default `85`) set
+  the window's opacity in percent (40–100) while the pointer is over it or it
+  has focus, and the rest of the time.
+
+```bash
+bb plugin config simple-notes set chatDefaultFolder folder
+bb plugin config simple-notes set chatFolder ~/Projects/research
+bb plugin config simple-notes set chatOpacityIdle 70
+```
+
+The window's tabs, size, and open state are stored in the browser's local
+storage on each device.
+
 ### File Editor plugin
 
 The builtin File Editor plugin (`monaco-editor`) opens files in Monaco. Its

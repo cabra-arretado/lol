@@ -10,6 +10,8 @@ Collaborate with agents on editing Markdown docs inline. Edit directly inside th
 - Editable document cards in agent replies. Edit Markdown directly in the timeline or open the same document in a tab, with shared autosave.
 - Review agent proposals with live diffs. Edit the proposed text, accept or reject it, undo or redo, or ask the agent for changes through a document mention.
 - Copy the current draft from the header. Progress appears during saves and proposal actions, and recent documents stay visible when returning to a thread.
+- A Vault view with the file tree on the left and the open note in the middle. Hide or resize the tree.
+- A floating chat on every screen. Open it from the bubble in the bottom-right corner. It has up to five chat tabs and a Past chats list. New chats run in the vault's folder by default; change this in the settings. While a note is open in the Vault view, + File attaches the note and + Selection attaches the selected text with its line numbers. Wikilinks in replies open notes. The window is translucent when you're not using it; drag its top-left corner to resize it.
 
 ## For agents
 

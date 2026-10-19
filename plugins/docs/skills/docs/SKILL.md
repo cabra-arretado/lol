@@ -103,6 +103,15 @@ known. Markdown cards are editable and autosave in the timeline; Open in tab ope
 the same document in Docs. Use the directive for both
 Markdown documents and full HTML artifacts.
 
+When your working folder is a vault's folder (floating Docs chats run there by
+default), link a note in your reply with a Markdown link whose path is relative
+to that folder, such as `[the launch plan](Projects/launch-plan.md)`. It shows
+only the label, and clicking it opens the note in the Vault view. Use the
+file's real path, since a note's file name can differ from its title. Avoid
+wikilinks such as `[[Launch plan]]`: they open the note too, but the brackets
+stay visible. In any other folder, relative links point into that folder
+instead, so show a vault note with the `::docs` directive above.
+
 ## Propose changes for approval
 
 When the user asks to update a mentioned document or revise a pending proposal,

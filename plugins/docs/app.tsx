@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
+  type ReactNode,
 } from "react";
 import {
   definePluginApp,
@@ -31,6 +32,8 @@ import {
   type DocumentIO,
 } from "./document-session.js";
 import { Icon } from "@/components/ui/icon";
+import { useIsCompactViewport } from "@/components/ui/hooks/use-compact-viewport";
+import { ResponsiveDrawerShell } from "@/components/ui/responsive-overlay";
 import {
   Tooltip,
   TooltipContent,
@@ -63,6 +66,15 @@ import {
   type MarkdownBlocks,
 } from "./markdown-blocks.js";
 import { HtmlBlock, HtmlSource } from "./raw-html.js";
+import {
+  clearActiveNote,
+  selectionLineRange,
+  setActiveNote,
+  registerVaultView,
+  setActiveVault,
+  setNoteSelection,
+} from "./active-note.js";
+import { FloatingChat, VAULT_PANEL_PATH } from "./floating-chat.js";
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { toast } from "sonner";
 import ArrowDown01Icon from "@hugeicons/core-free-icons/ArrowDown01Icon";
@@ -79,6 +91,7 @@ import FolderAddIcon from "@hugeicons/core-free-icons/FolderAddIcon";
 import HtmlFile01Icon from "@hugeicons/core-free-icons/HtmlFile01Icon";
 import PlusSignIcon from "@hugeicons/core-free-icons/PlusSignIcon";
 import Search01Icon from "@hugeicons/core-free-icons/Search01Icon";
+import SidebarLeftIcon from "@hugeicons/core-free-icons/SidebarLeftIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { DelayedLoading } from "@/components/ui/delayed-loading";
@@ -325,6 +338,7 @@ const MarkdownTaskInput = Extension.create({
 });
 
 const STYLE_MARKER = "data-bb-simple-notes-styles";
+const SELECTION_REPORT_DELAY_MS = 150;
 const EDITOR_CSS = `
 .bb-simple-notes-editor .tiptap {
   outline: none; width: 100%; max-width: 48em; margin: 0 auto; padding: 3rem 1.5rem 40vh;
@@ -434,6 +448,7 @@ function TiptapEditor(props: {
   inline?: boolean;
   disabled?: boolean;
   onFocusChange?(focused: boolean): void;
+  onSelectionChange?(selection: { text: string; markdown: string } | null): void;
 }) {
   const {
     initialValue,
@@ -572,7 +587,25 @@ function TiptapEditor(props: {
     serializeRef.current = getMarkdown;
     latest.current.onFirstRender(getMarkdown());
     editor.on("update", () => latest.current.onMarkdownChange(getMarkdown()));
+    let selectionTimer: ReturnType<typeof setTimeout> | null = null;
+    editor.on("selectionUpdate", () => {
+      const report = latest.current.onSelectionChange;
+      if (!report) return;
+      if (selectionTimer !== null) clearTimeout(selectionTimer);
+      selectionTimer = null;
+      const { from, to } = editor.state.selection;
+      const text = from === to ? "" : editor.state.doc.textBetween(from, to, "\n");
+      if (!text.trim()) {
+        report(null);
+        return;
+      }
+      selectionTimer = setTimeout(() => {
+        selectionTimer = null;
+        latest.current.onSelectionChange?.({ text, markdown: getMarkdown() });
+      }, SELECTION_REPORT_DELAY_MS);
+    });
     return () => {
+      if (selectionTimer !== null) clearTimeout(selectionTimer);
       editor.destroy();
       editorRef.current = null;
     };
@@ -1255,7 +1288,7 @@ function DocumentPicker() {
       </p>
       <NotesWorkspace
         subPath={subPath}
-        navigationOnly
+        mode="navigation"
         onNavigate={(next) => {
           const [vaultId, ...parts] = next.split("/");
           const filePath = parts.join("/");
@@ -1310,11 +1343,13 @@ function SavedDocumentEditor({
   io,
   onUpload,
   onReload,
+  onSelectionChange,
   errorHint = "",
 }: {
   io: DocumentIO;
   onUpload(file: File): Promise<{ markdownPath: string }>;
   onReload?(): void;
+  onSelectionChange?(selection: { text: string; markdown: string } | null): void;
   errorHint?: string;
 }) {
   const { state, session } = useSavedDocument(io);
@@ -1361,6 +1396,7 @@ function SavedDocumentEditor({
         onUpload={onUpload}
         onFirstRender={session.initialize}
         onMarkdownChange={session.edit}
+        {...(onSelectionChange ? { onSelectionChange } : {})}
       />
     </div>
   );
@@ -1369,11 +1405,13 @@ function SavedDocumentEditor({
 function NotePane({
   vaultId,
   notePath,
+  trackSelection = false,
   onChanged,
   onRenamed,
 }: {
   vaultId: string;
   notePath: string;
+  trackSelection?: boolean;
   onChanged(): void;
   onRenamed(path: string): void;
 }) {
@@ -1429,6 +1467,23 @@ function NotePane({
       io={io}
       onUpload={upload}
       onReload={() => location.reload()}
+      {...(trackSelection
+        ? {
+            onSelectionChange: (
+              selection: { text: string; markdown: string } | null,
+            ) =>
+              setNoteSelection(
+                selection
+                  ? {
+                      vaultId,
+                      path: notePath,
+                      text: selection.text,
+                      lines: selectionLineRange(selection.markdown, selection.text),
+                    }
+                  : null,
+              ),
+          }
+        : {})}
     />
   );
 }
@@ -2046,26 +2101,180 @@ function parseRoute(subPath: string): {
   };
 }
 
+type WorkspaceMode = "navigation" | "content" | "vault";
+
+const VAULT_LAYOUT_STORAGE_KEY = "bb-docs-vault-layout-v1";
+const VAULT_TREE_MIN_WIDTH = 180;
+const VAULT_TREE_MAX_WIDTH = 520;
+
+function clampTreeWidth(width: number): number {
+  return Math.round(
+    Math.min(VAULT_TREE_MAX_WIDTH, Math.max(VAULT_TREE_MIN_WIDTH, width)),
+  );
+}
+
+function readVaultLayout(): { treeOpen: boolean; treeWidth: number } {
+  const fallback = { treeOpen: true, treeWidth: 260 };
+  try {
+    const raw = window.localStorage.getItem(VAULT_LAYOUT_STORAGE_KEY);
+    const value: unknown = raw ? JSON.parse(raw) : null;
+    if (!isRecord(value)) return fallback;
+    return {
+      treeOpen:
+        typeof value.treeOpen === "boolean" ? value.treeOpen : fallback.treeOpen,
+      treeWidth:
+        typeof value.treeWidth === "number"
+          ? clampTreeWidth(value.treeWidth)
+          : fallback.treeWidth,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function writeVaultLayout(layout: { treeOpen: boolean; treeWidth: number }) {
+  try {
+    window.localStorage.setItem(
+      VAULT_LAYOUT_STORAGE_KEY,
+      JSON.stringify(layout),
+    );
+  } catch {}
+}
+
+function VaultSplit({
+  tree,
+  header,
+  openPath,
+  children,
+}: {
+  tree: ReactNode;
+  header: ReactNode;
+  openPath: string | null;
+  children: ReactNode;
+}) {
+  const compact = useIsCompactViewport();
+  const [drawer, setDrawer] = useState<{ openFor: string | null } | null>(null);
+  const drawerOpen = drawer !== null && drawer.openFor === openPath;
+  const setDrawerOpen = (open: boolean) =>
+    setDrawer(open ? { openFor: openPath } : null);
+  const [layout, setLayout] = useState(readVaultLayout);
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const commit = (next: { treeOpen: boolean; treeWidth: number }) => {
+    setLayout(next);
+    writeVaultLayout(next);
+  };
+  const treeShown = compact ? drawerOpen : layout.treeOpen;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1">
+      {compact ? (
+        <ResponsiveDrawerShell
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          srLabel="File tree"
+          contentClassName="flex h-[70dvh] flex-col p-0"
+        >
+          {tree}
+        </ResponsiveDrawerShell>
+      ) : layout.treeOpen ? (
+        <>
+          <div
+            className="flex min-h-0 shrink-0 border-r border-border"
+            style={{ width: layout.treeWidth }}
+          >
+            {tree}
+          </div>
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize file tree"
+            aria-valuemin={VAULT_TREE_MIN_WIDTH}
+            aria-valuemax={VAULT_TREE_MAX_WIDTH}
+            aria-valuenow={layout.treeWidth}
+            tabIndex={0}
+            className="-ml-1 w-1 shrink-0 cursor-col-resize transition-colors hover:bg-state-hover focus-visible:bg-state-active focus-visible:outline-none"
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              dragRef.current = {
+                startX: event.clientX,
+                startWidth: layout.treeWidth,
+              };
+            }}
+            onPointerMove={(event) => {
+              const drag = dragRef.current;
+              if (!drag) return;
+              setLayout((current) => ({
+                ...current,
+                treeWidth: clampTreeWidth(
+                  drag.startWidth + event.clientX - drag.startX,
+                ),
+              }));
+            }}
+            onPointerUp={() => {
+              dragRef.current = null;
+              writeVaultLayout(layout);
+            }}
+            onKeyDown={(event) => {
+              const step = event.shiftKey ? 40 : 10;
+              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                event.preventDefault();
+                commit({
+                  ...layout,
+                  treeWidth: clampTreeWidth(
+                    layout.treeWidth +
+                      (event.key === "ArrowRight" ? step : -step),
+                  ),
+                });
+              }
+            }}
+          />
+        </>
+      ) : null}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-1.5">
+          <Button
+            className="size-7"
+            size="icon"
+            variant="ghost"
+            aria-label={treeShown ? "Hide file tree" : "Show file tree"}
+            aria-pressed={treeShown}
+            onClick={() =>
+              compact
+                ? setDrawerOpen(!drawerOpen)
+                : commit({ ...layout, treeOpen: !layout.treeOpen })
+            }
+          >
+            <HugeiconsIcon icon={SidebarLeftIcon} className="size-4" />
+          </Button>
+          {header}
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function NotesWorkspace({
   subPath,
-  navigationOnly,
+  mode,
   onNavigate,
 }: PluginNavPanelProps & {
-  navigationOnly: boolean;
+  mode: WorkspaceMode;
   onNavigate?(subPath: string, replace?: boolean): void;
 }) {
   const rpc = useRpc<typeof docsRpcContract>();
   const navigate = useBbNavigate();
+  const panelPath = mode === "vault" ? VAULT_PANEL_PATH : "docs";
+  const showsTree = mode !== "content";
   const navigateTo = useCallback(
     (next: string, replace?: boolean) => {
       if (onNavigate) onNavigate(next, replace);
       else
-        navigate.toPluginPanel("docs", {
+        navigate.toPluginPanel(panelPath, {
           subPath: next,
           ...(replace === undefined ? {} : { replace }),
         });
     },
-    [navigate, onNavigate],
+    [navigate, onNavigate, panelPath],
   );
   const route = parseRoute(subPath);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -2093,6 +2302,29 @@ function NotesWorkspace({
     },
     [activeVaultId, isCurrentVault, navigateTo],
   );
+  const activeNoteTitle =
+    filePath && data
+      ? (data.notes.find((note) => note.path === filePath)?.title ??
+        documentTitle(filePath))
+      : null;
+  useEffect(() => {
+    if (mode !== "vault") return;
+    return registerVaultView();
+  }, [mode]);
+  useEffect(() => {
+    if (mode !== "vault" || !activeVaultId) return;
+    setActiveVault(activeVaultId);
+    if (!filePath || !/\.md$/i.test(filePath) || activeNoteTitle === null) {
+      setActiveNote(null);
+      return;
+    }
+    setActiveNote({
+      vaultId: activeVaultId,
+      path: filePath,
+      title: activeNoteTitle,
+    });
+    return () => clearActiveNote(activeVaultId, filePath);
+  }, [activeNoteTitle, activeVaultId, filePath, mode]);
 
   if (!data || !activeVaultId) {
     if (error)
@@ -2244,10 +2476,7 @@ function NotesWorkspace({
     }
   };
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1">
-        {navigationOnly ? (
+  const tree = (
           <Tree
             data={data}
             selectedPath={filePath}
@@ -2262,8 +2491,10 @@ function NotesWorkspace({
             onVaultChange={(value) => navigateTo(value)}
             onAddVault={() => setVaultDialogOpen(true)}
           />
-        ) : filePath && /\.md$/i.test(filePath) ? (
+  );
+  const content = filePath && /\.md$/i.test(filePath) ? (
           <NotePane
+            trackSelection={mode === "vault"}
             key={`${activeVaultId}:${filePath}`}
             vaultId={activeVaultId}
             notePath={filePath}
@@ -2287,9 +2518,30 @@ function NotesWorkspace({
               New note
             </Button>
           </div>
+        );
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1">
+        {mode === "navigation" ? (
+          tree
+        ) : mode === "vault" ? (
+          <VaultSplit
+            tree={tree}
+            openPath={filePath}
+            header={
+              <span className="min-w-0 truncate text-xs text-muted-foreground">
+                {data.vault.name}
+                {filePath ? ` / ${filePath}` : ""}
+              </span>
+            }
+          >
+            {content}
+          </VaultSplit>
+        ) : (
+          content
         )}
       </div>
-      {navigationOnly ? (
+      {showsTree ? (
         <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
           <DialogContent>
             <form
@@ -2337,7 +2589,7 @@ function NotesWorkspace({
           </DialogContent>
         </Dialog>
       ) : null}
-      {navigationOnly ? (
+      {showsTree ? (
         <Dialog open={vaultDialogOpen} onOpenChange={setVaultDialogOpen}>
           <DialogContent>
             <form
@@ -2413,11 +2665,15 @@ function NotesWorkspace({
 }
 
 function NotesPanel(props: PluginNavPanelProps) {
-  return <NotesWorkspace {...props} navigationOnly={false} />;
+  return <NotesWorkspace {...props} mode="content" />;
 }
 
 function NotesNavigationPanel(props: PluginNavPanelProps) {
-  return <NotesWorkspace {...props} navigationOnly />;
+  return <NotesWorkspace {...props} mode="navigation" />;
+}
+
+function VaultPanel(props: PluginNavPanelProps) {
+  return <NotesWorkspace {...props} mode="vault" />;
 }
 
 export default definePluginApp((app) => {
@@ -2437,6 +2693,17 @@ export default definePluginApp((app) => {
         layout: "flush",
       },
     ],
+  });
+  app.slots.navPanel({
+    id: VAULT_PANEL_PATH,
+    title: "Vault",
+    icon: "FolderOpen",
+    path: VAULT_PANEL_PATH,
+    component: VaultPanel,
+  });
+  app.slots.experimental_appOverlay({
+    id: "floating-chat",
+    component: FloatingChat,
   });
   app.slots.threadPanelAction({
     id: "document",

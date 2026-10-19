@@ -10,6 +10,7 @@ import {
 } from "@get-bb/plugin-sdk/testing/app";
 
 const app = await loadPluginApp(() => import("./app"));
+const { useActiveNote } = await import("./active-note");
 const docsRegistration = app.navPanels[0]!;
 const navigationView = docsRegistration.fixedTabs?.[0]!;
 const navigationRegistration = {
@@ -1769,3 +1770,71 @@ describe("Docs nav panel", () => {
     slot.getByText("Roadmap");
   });
 });
+
+describe("Vault view", () => {
+  const vaultRegistration = app.navPanels.find(
+    (panel) => panel.path === "vault",
+  )!;
+
+  function ActiveNoteProbe() {
+    const { note } = useActiveNote();
+    return <output data-testid="active-note">{note ? `${note.vaultId}:${note.path}:${note.title}` : "none"}</output>;
+  }
+
+  it("shows the file tree beside the open note and publishes it as the active note", async () => {
+    const slot = renderSlot(
+      vaultRegistration,
+      { subPath: "personal/plans/launch.md" },
+      {
+        rpc: {
+          listNotes: () =>
+            listNotesResult(
+              [
+                {
+                  path: "plans/launch.md",
+                  title: "Launch",
+                  preview: "Ship it",
+                  modifiedAtMs: 1,
+                },
+              ],
+              [
+                { kind: "directory", path: "plans" },
+                { kind: "file", path: "plans/launch.md" },
+              ],
+            ),
+          readNote: () => ({ content: "# Launch\n\nShip it", sha256: "sha" }),
+          preparePreview: () => preview,
+          renameToTitle: () => ({ path: "plans/launch.md" }),
+          saveNote: () => ({ outcome: "written", sha256: "next" }),
+        },
+      },
+    );
+    const probe = renderSlot(
+      { ...vaultRegistration, component: ActiveNoteProbe },
+      { subPath: "" },
+    );
+
+    await slot.findByText("Ship it");
+    const tree = slot.getByRole("navigation", { name: "Notes" });
+    expect(tree.textContent).toContain("plans");
+    expect(tree.textContent).toContain("Launch");
+    expect(slot.getByText("Personal / plans/launch.md")).toBeTruthy();
+    await waitFor(() =>
+      expect(probe.getByTestId("active-note").textContent).toBe(
+        "personal:plans/launch.md:Launch",
+      ),
+    );
+
+    fireEvent.click(slot.getByRole("button", { name: "Hide file tree" }));
+    expect(slot.queryByRole("navigation", { name: "Notes" })).toBeNull();
+    expect(slot.getByText("Ship it")).toBeTruthy();
+    fireEvent.click(slot.getByRole("button", { name: "Show file tree" }));
+    expect(slot.getByRole("navigation", { name: "Notes" })).toBeTruthy();
+
+    slot.unmount();
+    await waitFor(() =>
+      expect(probe.getByTestId("active-note").textContent).toBe("none"),
+    );
+  });
+});
+
