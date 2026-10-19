@@ -16,53 +16,62 @@ import { brandAssetsEqual } from "./brand-assets-equal.mjs";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 const publicDir = join(appDir, "public");
-const mark = await readFile(
-  resolve(appDir, "../../assets/bb-logo.svg"),
-  "utf8",
+const source = await readFile(
+  resolve(appDir, "../../assets/lol-logo-source.png"),
 );
 
 describe("brand icon source contract", () => {
   it.each([
-    ["reformatted SVG root", mark.replace("<svg ", "<svg\n")],
-    ["changed source color", mark.replace('fill="#151515"', 'fill="#000"')],
     [
-      "inline fill style",
-      mark.replace('fill="#151515"', 'style="fill:#151515"'),
+      "non-square image",
+      { width: 1024, height: 512, channels: 3, background: "#00ad21" },
     ],
     [
-      "second uncolored path",
-      mark.replace("</svg>", '<path d="M0 0H5V5Z"/></svg>'),
+      "undersized image",
+      { width: 128, height: 128, channels: 3, background: "#00ad21" },
     ],
-    ["multiple fills", mark.replace("<path ", '<path fill="#fff" ')],
-  ])("rejects %s before writing any assets", async (_, source) => {
+    [
+      "transparent image",
+      { width: 512, height: 512, channels: 4, background: "#0000" },
+    ],
+  ])("rejects %s before writing any assets", async (_, create) => {
     const root = await mkdtemp(join(tmpdir(), "lol-brand-source-"));
     try {
       await mkdir(join(root, "assets"));
-      await writeFile(join(root, "assets/bb-logo.svg"), source);
+      await writeFile(
+        join(root, "assets/lol-logo-source.png"),
+        await sharp({ create }).png().toBuffer(),
+      );
       let writes = 0;
       await expect(
         generateBrandIcons(join(root, "apps/app/public"), () => writes++),
-      ).rejects.toThrow("Unsupported logo SVG");
+      ).rejects.toThrow("Unsupported logo source");
       expect(writes).toBe(0);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("renders white and development glyphs with the same alpha silhouette as the dark mark", async () => {
+  it("preserves the selected artwork and derives transparent glyphs without the green tile", async () => {
     const outputs = new Map();
-    await generateBrandIcons(publicDir, (file, content) =>
+    const tintSources = await generateBrandIcons(publicDir, (file, content) =>
       outputs.set(file, content),
     );
+    const brand = outputs.get(resolve(appDir, "../../assets/bb-logo.png"));
+    const selected = await sharp(source)
+      .resize(568, 568)
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    const rendered = await sharp(brand).ensureAlpha().raw().toBuffer();
+    expect(rendered.equals(selected)).toBe(true);
     const alphaMasks = [];
     for (const [name, color] of [
-      ["bb-logo.png", [21, 21, 21]],
       ["bb-logo-white.png", [255, 255, 255]],
       ["bb-logo-dev.png", [229, 72, 77]],
     ]) {
       const png = outputs.get(resolve(appDir, "../../assets", name));
-      expect(png).toBeDefined();
-      const { data } = await sharp(png)
+      const { data, info } = await sharp(png)
         .ensureAlpha()
         .raw()
         .toBuffer({ resolveWithObject: true });
@@ -79,10 +88,29 @@ describe("brand icon source contract", () => {
       }
       expect(solidPixels).toBeGreaterThan(1000);
       expect(incorrectPixels).toBe(0);
+      expect(data[3]).toBe(0);
+      expect(
+        data[((info.height - 1) * info.width + info.width - 1) * 4 + 3],
+      ).toBe(0);
       alphaMasks.push(Buffer.from(alpha));
     }
     expect(alphaMasks[1].equals(alphaMasks[0])).toBe(true);
-    expect(alphaMasks[2].equals(alphaMasks[0])).toBe(true);
+    const maskable = await sharp(tintSources.get("icon-512-maskable.png"))
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    let outsideSafeArea = 0;
+    let glyphPixels = 0;
+    for (let y = 0; y < 512; y++) {
+      for (let x = 0; x < 512; x++) {
+        if (maskable[(y * 512 + x) * 3] < 245) {
+          glyphPixels++;
+          if (Math.hypot(x - 255.5, y - 255.5) > 204.8) outsideSafeArea++;
+        }
+      }
+    }
+    expect(glyphPixels).toBeGreaterThan(1000);
+    expect(outsideSafeArea).toBe(0);
   });
 });
 

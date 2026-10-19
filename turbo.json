@@ -4,6 +4,26 @@
   "globalPassThroughEnv": ["npm_config_store_dir", "pnpm_config_store_dir"],
   "tasks": {
     "@bb/db#db:generate": { "cache": false },
+    "@bb/app#generate:pwa-icons": {
+      "inputs": [
+        "package.json",
+        "scripts/generate-brand-icons.mjs",
+        "scripts/generate-pwa-icons.mjs",
+        "scripts/brand-assets-equal.mjs",
+        "public/manifest.webmanifest",
+        "$TURBO_ROOT$/assets/lol-logo-source.png",
+        "$TURBO_ROOT$/pnpm-lock.yaml"
+      ],
+      "outputs": [
+        "public/favicon-*.png",
+        "public/icon-*.png",
+        "public/apple-touch-icon*.png",
+        "public/manifest-*.webmanifest",
+        "$TURBO_ROOT$/assets/bb-logo*.png",
+        "$TURBO_ROOT$/apps/desktop/assets/icon*.png",
+        "$TURBO_ROOT$/apps/desktop/assets/icon*.icns"
+      ]
+    },
     "@bb/desktop#smoke:browser-broker": {
       "cache": false,
       "dependsOn": [
@@ -30,6 +50,7 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/assets/bb-logo*",
+        "$TURBO_ROOT$/assets/lol-logo-source.png",
         "$TURBO_ROOT$/apps/desktop/assets/icon*",
         "$TURBO_ROOT$/CHANGELOG.md",
         "$TURBO_ROOT$/changelog-metadata.ts",
@@ -50,7 +71,8 @@
       "dependsOn": ["topo"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/assets/bb-logo.svg",
+        "$TURBO_ROOT$/assets/bb-logo*",
+        "$TURBO_ROOT$/assets/lol-logo-source.png",
         "$TURBO_ROOT$/.env*",
         ".env*",
         "$TURBO_ROOT$/CHANGELOG.md",
