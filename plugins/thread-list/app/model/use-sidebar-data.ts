@@ -10,12 +10,17 @@ import {
 } from "@get-bb/plugin-sdk/app";
 import type { SidebarThread } from "./sidebar-thread.js";
 
+export type SidebarProjectColor = NonNullable<
+  PluginSidebarProject["experimental_color"]
+>;
+
 export interface SidebarProject {
   id: string;
   name: string;
   href: string;
   settingsHref: string;
   isPersonal: boolean;
+  color: SidebarProjectColor | null;
   threads: SidebarThread[];
 }
 
@@ -61,7 +66,8 @@ function sameProjectShape(
     previous.name === project.name &&
     previous.href === project.href &&
     previous.settingsHref === project.settingsHref &&
-    previous.isPersonal === project.isPersonal
+    previous.isPersonal === project.isPersonal &&
+    previous.color === (project.experimental_color ?? null)
   );
 }
 
@@ -108,6 +114,7 @@ export function buildSidebarData(
       href: project.href,
       settingsHref: project.settingsHref,
       isPersonal: project.isPersonal,
+      color: project.experimental_color ?? null,
       threads:
         before !== undefined && sameElements(before.threads, bucket)
           ? before.threads

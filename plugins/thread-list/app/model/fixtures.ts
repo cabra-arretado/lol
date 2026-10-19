@@ -118,5 +118,10 @@ export function makePluginProject(
 export function makeSidebarProject(
   overrides: Partial<SidebarProject> = {},
 ): SidebarProject {
-  return { ...makePluginProject(overrides), threads: [], ...overrides };
+  return {
+    ...makePluginProject(overrides),
+    color: overrides.color ?? null,
+    threads: [],
+    ...overrides,
+  };
 }

@@ -32,6 +32,7 @@ const PERSONAL_PROJECT: Project = {
   kind: "personal",
   name: "Personal",
   gitRemoteUrl: null,
+  color: null,
   createdAt: 1,
   updatedAt: 1,
 };

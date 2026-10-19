@@ -198,6 +198,7 @@ export function makeMessageDispatchHookContext(
       kind: "standard",
       name: "Test project",
       gitRemoteUrl: null,
+      color: null,
       createdAt: 0,
       updatedAt: 0,
     },

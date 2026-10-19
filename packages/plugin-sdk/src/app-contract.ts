@@ -11,6 +11,7 @@ import type {
   ProviderInfo,
   ReasoningLevel,
   ServiceTier,
+  ProjectColor,
   SessionOptionSelections,
   EnvironmentWorkspaceDisplayKind,
   ThreadQueuedWork,
@@ -1119,6 +1120,8 @@ export interface PluginSidebarProject {
   href: string;
   /** The app-relative URL of the project's settings page. */
   settingsHref: string;
+  /** The user-chosen sidebar color, or null/absent when none is set. */
+  experimental_color?: ProjectColor | null;
 }
 
 /**

@@ -135,7 +135,9 @@ import { TopLevelSidebarSection } from "./TopLevelSidebarSection.js";
 import {
   sidebarCollapsedThreadSectionsAtom,
   sidebarGroupThreadsByEnvironmentAtom,
+  sidebarShowProjectColorsAtom,
 } from "../preferences/atoms.js";
+import { resolveProjectColor } from "../model/project-color.js";
 import {
   SIDEBAR_ROW_BASE_CLASS,
   getSidebarThreadGroupLineLeft,
@@ -2128,6 +2130,7 @@ export const ChronologicalSectionThreadSections = memo(
 
 function ProjectRowComponent({
   project,
+  isActive,
   threadListState,
   rootItems,
   selectedThreadId,
@@ -2154,6 +2157,7 @@ function ProjectRowComponent({
     label: "Project name",
     onSave: (name) => sdk.projects.update({ projectId: project.id, name }),
   });
+  const showProjectColors = useAtomValue(sidebarShowProjectColorsAtom);
   const [isDropdownActionsOpen, setIsDropdownActionsOpen] = useState(false);
   const [isContextActionsOpen, setIsContextActionsOpen] = useState(false);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
@@ -2233,6 +2237,12 @@ function ProjectRowComponent({
         >
           <TopLevelSidebarSection
             label={project.name}
+            accentColor={
+              showProjectColors
+                ? resolveProjectColor(project.id, project.color)
+                : null
+            }
+            isCurrent={isActive}
             dropParentKey={buildSidebarEntitySectionId("project", project.id)}
             labelEditor={rename.editor}
             onRename={rename.startEditingFromDoubleClick}

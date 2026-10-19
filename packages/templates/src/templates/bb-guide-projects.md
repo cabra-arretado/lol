@@ -31,6 +31,8 @@ A project maps to a code repository. All threads belong to a project.
     Accepts proj_personal to inspect Personal.
   bb project update <id>                  Update a project
     --name <name>                         New name
+    --color <color>                       Sidebar color: red, orange, amber, green,
+                                          teal, blue, violet, pink, or none (automatic)
 
   bb project delete <id>                  Delete project and all threads
     --yes                                 Skip confirmation

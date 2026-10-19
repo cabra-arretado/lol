@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+import { projectColorCss } from "../model/project-color.js";
+import type { SidebarProjectColor } from "../model/use-sidebar-data.js";
 import { Icon } from "@/components/ui/icon";
 import { LIST_HOVER_TRANSITION } from "@/components/ui/motion";
 import { CHROME_SECTION_LABEL_CLASS } from "@/components/ui/chrome-style-tokens";
@@ -78,6 +80,8 @@ export interface TopLevelSidebarSectionProps {
   sectionStyle?: CSSProperties;
   consumeClickSuppression?: ConsumeDragClickSuppression;
   isDropTargetActive?: boolean;
+  accentColor?: SidebarProjectColor | null;
+  isCurrent?: boolean;
 }
 
 export function TopLevelSidebarSection({
@@ -101,6 +105,8 @@ export function TopLevelSidebarSection({
   sectionStyle,
   consumeClickSuppression,
   isDropTargetActive = false,
+  accentColor = null,
+  isCurrent = false,
 }: TopLevelSidebarSectionProps) {
   const threadDropState = useSectionDropTargetState(dropParentKey);
   const collapsedSplitIndicator = useThreadGroupSplitIndicator(
@@ -180,11 +186,13 @@ export function TopLevelSidebarSection({
       data-sidebar-section-id={sectionId}
       data-sidebar-drop-target={threadDropState ?? undefined}
       data-sidebar-rename-row=""
+      data-sidebar-current-project={isCurrent ? "true" : undefined}
       data-sidebar-sticky-header={stickyHeader ? undefined : "false"}
       className={cn(
         "group/sidebar-section relative min-w-0 rounded-md transition-colors",
         isDropTargetActive && "bg-sidebar-accent/60",
       )}
+      aria-current={isCurrent ? "true" : undefined}
       onClickCapture={handleClickCapture}
     >
       {threadDropState ? (
@@ -206,9 +214,25 @@ export function TopLevelSidebarSection({
         {...(dragBindings?.listeners ?? {})}
       >
         <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1 text-left">
+          {accentColor !== null || isCurrent ? (
+            <span
+              aria-hidden="true"
+              data-sidebar-project-color={accentColor ?? undefined}
+              className={cn(
+                "inline-block size-2 shrink-0 rounded-full",
+                accentColor === null && "bg-subtle-foreground",
+                isCurrent && "ring-2 ring-sidebar-ring",
+              )}
+              style={
+                accentColor === null
+                  ? undefined
+                  : { backgroundColor: projectColorCss(accentColor) }
+              }
+            />
+          ) : null}
           {labelEditor ?? (
             <span
-              className="min-w-0 truncate"
+              className={cn("min-w-0 truncate", isCurrent && "font-semibold")}
               title={label}
               onDoubleClick={
                 onRename

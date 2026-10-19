@@ -483,6 +483,7 @@ const OPTIONAL_SERVER_FIELD_GROUPS: readonly OptionalServerFieldGroup[] = [
     reason:
       "Project and project-source PATCH requests omit fields that should be left unchanged.",
     fields: [
+      "updateProjectRequestSchema.color",
       "updateProjectRequestSchema.name",
       "updateProjectSourceRequestSchema.isDefault",
       "updateProjectSourceRequestSchema.path",

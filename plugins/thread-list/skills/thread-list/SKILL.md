@@ -6,7 +6,7 @@ description: "Inspect or change the sidebar thread list's layout preferences: or
 # Thread list preferences
 
 The Thread list plugin owns the sidebar's layout state. Read it with
-`bb thread-list prefs list --json`; keys are `showProviderIcons`, `threadLifecycles`, `organizationMode`,
+`bb thread-list prefs list --json`; keys are `showProviderIcons`, `showProjectColors`, `threadLifecycles`, `organizationMode`,
 `environmentGrouping`, `groupByReadStatus`, `chronologicalSort`, `sortDirection`, `sectionOrder`,
 `manualSectionOrder`, `machineSectionOrder`, `hiddenGroups` (including the
 built-in `threads` group), `rowActions`,
@@ -76,6 +76,11 @@ Organize → Rows → Provider icons toggles the icon before each thread title.
 `showProviderIcons` defaults to `true`; use
 `bb thread-list prefs set showProviderIcons false` to hide them. Unknown
 provider ids have no icon.
+
+Organize → Rows → Project colors toggles the color dot before each project.
+`showProjectColors` defaults to `true`; projects without a chosen color get an
+automatic one, and `bb thread-list prefs set showProjectColors false` hides all
+dots. Pick a project's own color with `bb project update <id> --color <color>`.
 
 Organize → Groups → By read status lists threads that show the unread dot above
 the rest, keeping the selected sort within each group. `groupByReadStatus`
